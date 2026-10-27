@@ -147,6 +147,56 @@ def port_alive(port, timeout=0.6):
         return False
 
 
+def _normalize_efforts(value):
+    """把上游的推理档位归一成字符串数组。
+
+    wb 给的是数组（["low","medium","high"]），qoder 给的也是数组，但两边的
+    取值大小写/命名不完全一致；这里只做「能列出来」的归一，不改语义。
+    """
+    if isinstance(value, dict):
+        return [str(k) for k in value.keys()]
+    if isinstance(value, (list, tuple)):
+        return [str(v) for v in value if str(v).strip()]
+    if isinstance(value, str) and value.strip():
+        return [value.strip()]
+    return []
+
+
+def model_entry_for(entry):
+    """一条模型条目 = 上游原样字段 + 中枢附加字段。
+
+    为什么要透传：思考档位（reasoning_efforts）、上下文窗口、输出上限这些只
+    上游知道。合并网关如果只吐 id/owned_by，客户端就无从判断「这个模型支不
+    支持推理」「有哪些档位」——只认 id 的客户端拿不到任何推理能力信号。
+    """
+    raw = entry.get("raw") if isinstance(entry.get("raw"), dict) else {}
+    out = {}
+    for key, value in raw.items():
+        if key in ("id", "object", "owned_by"):
+            continue
+        out[key] = value
+    out["id"] = entry["id"]
+    out["object"] = "model"
+    out["owned_by"] = entry["owned_by"]
+    out["provider"] = entry["provider"]
+    # 客户端据此判断该模型要用哪个协议端点：zcode 只有 /v1/messages。
+    out["protocol"] = entry.get("protocol") or "openai"
+    # 中枢路由用的真实模型名（暴露名带前缀时与 id 不同）。
+    if entry.get("route_id") and entry["route_id"] != entry["id"]:
+        out["hub_route_id"] = entry["route_id"]
+    efforts = _normalize_efforts(raw.get("reasoning_efforts"))
+    if efforts:
+        out["reasoning_efforts"] = efforts
+    if "supports_reasoning" not in out:
+        fixed = raw.get("reasoning_fixed_effort")
+        if efforts or fixed:
+            out["supports_reasoning"] = True
+        elif raw.get("capabilities", {}).get("reasoning") if isinstance(
+                raw.get("capabilities"), dict) else None:
+            out["supports_reasoning"] = True
+    return out
+
+
 def prefix_url(url, mount):
     """把上游给的站内绝对路径补上挂载前缀。
 
@@ -912,6 +962,10 @@ class ModelIndex(object):
                         "realm": str(item.get("realm") or ""),
                         "owned_by": str(item.get("owned_by")
                                         or runtime.spec["label"]),
+                        # 上游条目原样留着：思考档位、上下文窗口、输出上限等
+                        # 元数据只能从上游拿（客户端靠它们判断「这个模型支持
+                        # 推理吗 / 有哪些档位」）。合并时透传，见 _v1_models。
+                        "raw": item,
                     })
             with self._lock:
                 self._entries = entries
@@ -963,6 +1017,18 @@ class ModelIndex(object):
                 provider = routing["overrides"][entry["route_id"]]
             item = dict(entry)
             item["provider"] = provider
+            # 推理档位只在上游条目里，面板要显示「这个模型有哪些档位」，
+            # 用户照着就能写 DSH / 客户端的 reasoningEfforts 配置。
+            raw = entry.get("raw") if isinstance(entry.get("raw"), dict) else {}
+            efforts = _normalize_efforts(raw.get("reasoning_efforts"))
+            if efforts:
+                item["reasoning_efforts"] = efforts
+            for key in ("reasoning_default_effort", "reasoning_fixed_effort",
+                        "reasoning_can_disable", "supports_reasoning",
+                        "max_output_tokens", "max_completion_tokens",
+                        "context_length"):
+                if raw.get(key) is not None:
+                    item[key] = raw[key]
             out.append(item)
         return out
 
@@ -2233,15 +2299,7 @@ class HubHandler(BaseHTTPRequestHandler):
                                     "'Authorization: Bearer <key>' or '?key=<key>'")
         data = []
         for entry in self.hub.models.entries():
-            data.append({
-                "id": entry["id"],
-                "object": "model",
-                "created": 0,
-                "owned_by": entry["owned_by"],
-                "provider": entry["provider"],
-                # 客户端据此判断该模型要用哪个协议端点：zcode 只有 /v1/messages。
-                "protocol": entry.get("protocol") or "openai",
-            })
+            data.append(model_entry_for(entry))
         return self._json(200, {"object": "list", "data": data})
 
     def _v1_model(self, model_id):

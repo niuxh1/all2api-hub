@@ -1,0 +1,112 @@
+# DeepSeek Harness（DSH）接入融合中枢的 provider 配置示例
+#
+# 复制下面 `providers:` 段到 DSH 的配置里（cordis.patch.yml / Cordis 配置），
+# 就能在「设置 → 模型」里看到该 provider，并且**每个模型行会出现「推理等级」
+# 选择器**（off / minimal / low / medium / high / xhigh / max）。
+#
+# 为什么需要手写：DSH 的推理等级选择器是**配置驱动**的——它读的是
+# `providers.<route>.models[].reasoningEfforts`（档位 → 实际发给 API 的值），
+# 不看网关 `/v1/models` 返回什么。所以「连上了却看不到思考等级选项」是
+# 正常的：那一行还没声明档位。
+#
+# 档位值来自上游模型目录，中枢的 `/v1/models` 已经原样透传（字段
+# `reasoning_efforts` / `reasoning_default_effort` / `reasoning_fixed_effort`）。
+# 下面的例子按当前 WorkBuddy 目录整理；模型增减后照着
+# `curl -H "Authorization: Bearer <你的中枢Key>" http://127.0.0.1:8787/v1/models`
+# 里的 `reasoning_efforts` 更新即可。
+#
+# 字段含义：
+#   id             客户端填的模型名（中枢暴露的名字；带 qoder/ 前缀的见文末）
+#   name           面板上显示的名字（可省）
+#   contextWindow  上下文窗口（上游目录的 context_length）
+#   maxTokens      单次最大输出（上游目录的 max_output_tokens）
+#   input          输入类型：["text"] 或 ["text","image"]
+#   reasoningEfforts
+#                  档位 → 实际写进请求 `reasoning_effort` 的值。
+#                  键只能取 off/minimal/low/medium/high/xhigh/max；
+#                  值默认与键同名，不同就写自定义值。
+#                  只想固定一档就把其它档位删掉；整段写 `false` 表示该模型不推理。
+#
+# 另一个更省事的办法：不写 reasoningEfforts，在中枢面板「上游设置 → 上游推理强度」
+# 选一个档位，中枢会在转发 chat / requests 时统一写入 `reasoning_effort`
+# （覆盖客户端带来的值）。那种情况下 DSH 侧不需要声明任何档位。
+
+providers:
+  all2api:
+    baseURL: http://127.0.0.1:8787/v1
+    api: openai-completions
+    apiKey: sk-hub-替换成你的中枢Key
+    models:
+      - id: hy4-preview
+        name: WorkBuddy Hy4 preview
+        contextWindow: 960000
+        maxTokens: 64000
+        input: ["text"]
+        reasoningEfforts:
+          high: high
+      - id: hy3
+        name: WorkBuddy Hy3
+        contextWindow: 192000
+        maxTokens: 64000
+        input: ["text"]
+        reasoningEfforts:
+          low: low
+          high: high
+      - id: deepseek-v4.1-flash
+        name: WorkBuddy DeepSeek V4.1 Flash
+        contextWindow: 1000000
+        maxTokens: 128000
+        input: ["text"]
+        reasoningEfforts:
+          off: off
+          low: low
+          high: high
+          max: max
+      - id: glm-5.3
+        name: WorkBuddy GLM 5.3
+        contextWindow: 1000000
+        maxTokens: 64000
+        input: ["text"]
+        reasoningEfforts:
+          low: low
+          high: high
+          max: max
+      - id: kimi-k3-1
+        name: WorkBuddy Kimi K3.1
+        contextWindow: 1000000
+        maxTokens: 32000
+        input: ["text"]
+        reasoningEfforts:
+          low: low
+          high: high
+          xhigh: xhigh
+      - id: step-5-preview
+        name: WorkBuddy Step 5 preview
+        contextWindow: 1000000
+        maxTokens: 64000
+        input: ["text"]
+        reasoningEfforts:
+          low: low
+          medium: medium
+          high: high
+      - id: Qwen3.8-Max
+        name: Qoder Qwen3.8 Max
+        contextWindow: 262144
+        maxTokens: 65536
+        input: ["text"]
+        reasoningEfforts:
+          off: off
+          minimal: minimal
+          low: low
+          medium: medium
+          high: high
+          max: max
+
+# 关于 Qoder / ZCode 的模型名：
+#   中枢暴露的模型名就是上游自己的名字（Qoder 的 `Qwen3.8-Max`、ZCode 的
+#   `GLM-5.2`）。当两边**同名**时，后注册的一侧会带 `qoder/` 或 `zcode/` 前缀，
+#   例如 `qoder/auto`；前缀是给客户端的强制指定方式，也可以在配置里原样写上。
+#
+# ZCode 只有 Anthropic Messages 协议：在 DSH 里请用 `api: anthropic-messages`
+# 并把 baseURL 指向 `http://127.0.0.1:8787`（**不带 /v1**），端点是
+# `POST /v1/messages`。

@@ -452,9 +452,9 @@ main{padding:16px clamp(12px,2vw,26px) 64px;max-width:1680px;margin:0 auto}
     <div class="table-wrap">
       <table class="tbl">
         <thead>
-          <tr><th>模型名（客户端填这个）</th><th>上游</th><th>区域</th><th>真实模型名</th></tr>
+          <tr><th>模型名（客户端填这个）</th><th>上游</th><th>区域</th><th>推理档位</th><th>真实模型名</th></tr>
         </thead>
-        <tbody id="modelBody"><tr><td colspan="4" class="muted">加载中…</td></tr></tbody>
+        <tbody id="modelBody"><tr><td colspan="5" class="muted">加载中…</td></tr></tbody>
       </table>
     </div>
     <div class="empty hidden" id="modelEmpty"></div>
@@ -1510,6 +1510,19 @@ main{padding:16px clamp(12px,2vw,26px) 64px;max-width:1680px;margin:0 auto}
   /* ============================================================
      渲染：模型与路由
      ============================================================ */
+  // 推理档位：上游目录里的 reasoning_efforts（档位名），没有就显示 —。
+  // 用户照这一列就能写 DSH / 其他客户端的 reasoningEfforts 配置。
+  function effortCell(m){
+    var list = m && m.reasoning_efforts;
+    if (list && list.length){
+      return '<span class="mono dim">' + esc(list.join(' / ')) + '</span>';
+    }
+    if (m && m.reasoning_fixed_effort){
+      return '<span class="mono dim">固定 ' + esc(m.reasoning_fixed_effort) + '</span>';
+    }
+    return '<span class="muted">—</span>';
+  }
+
   function modelRow(m){
     var id = String(m.id || '');
     var rid = m.route_id == null ? '' : String(m.route_id);
@@ -1518,6 +1531,7 @@ main{padding:16px clamp(12px,2vw,26px) 64px;max-width:1680px;margin:0 auto}
     html += '<td class="mono">' + esc(id || '—') + '</td>';
     html += '<td>' + pvBadge(String(m.provider || '')) + '</td>';
     html += '<td>' + esc(realmText(m.realm)) + '</td>';
+    html += '<td>' + effortCell(m) + '</td>';
     html += '<td class="mono dim">' + (showRoute ? esc(rid) : '<span class="muted">—</span>') + '</td>';
     html += '</tr>';
     return html;
@@ -1530,7 +1544,7 @@ main{padding:16px clamp(12px,2vw,26px) 64px;max-width:1680px;margin:0 auto}
     if (!body || !emptyEl || !sel) return;
 
     if (!state.loaded.models){
-      body.innerHTML = '<tr><td colspan="4" class="muted">加载中…</td></tr>';
+      body.innerHTML = '<tr><td colspan="5" class="muted">加载中…</td></tr>';
       emptyEl.classList.add('hidden');
       return;
     }

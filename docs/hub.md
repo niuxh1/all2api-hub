@@ -215,6 +215,32 @@ export ANTHROPIC_MODEL="deepseek-v4.1-flash"
   中枢只是把「入口」收到了一处。
 - 中枢读账号表要用上游的面板密码（默认 `admin`，改过的话见下面「账号与数据目录」里的配置说明）。
 
+### 接入 DeepSeek Harness（DSH）
+
+中枢的 `/v1/models` **原样透传上游的模型元数据**，其中包括推理档位：
+
+```json
+{"id": "deepseek-v4.1-flash", "reasoning_efforts": ["low", "high", "max"],
+ "reasoning_default_effort": "high", "supports_reasoning": true,
+ "max_output_tokens": 128000, "context_length": 1000000, "provider": "wb"}
+```
+
+但 DSH 的「推理等级」选择器是**配置驱动**的：它读的是
+`providers.<route>.models[].reasoningEfforts`（档位 → 实际发给 API 的值），
+不看网关返回什么。所以「连上中枢后模型行没有思考等级选项」是正常的——
+那一行还没声明档位。
+
+两种做法：
+
+1. **在 DSH 里声明档位**（想按请求选档位）：照
+   [docs/dsh-provider.example.yml](dsh-provider.example.yml) 复制一段到 DSH 配置，
+   每个模型行写 `reasoningEfforts: { low: low, high: high }`，
+   「设置 → 模型」里就会出现档位选择器。档位取值以中枢 `/v1/models` 的
+   `reasoning_efforts` 为准（面板「模型与路由」表的「推理档位」列同源）。
+2. **在中枢统一固定档位**（不想在客户端里选）：面板「上游设置 → 上游推理强度」
+   选一个档位，中枢转发 chat / requests 时统一写入 `reasoning_effort`，
+   覆盖客户端带来的值；客户端无需任何配置。
+
 ### 上游设置：区域与推理强度
 
 「当前出口」卡片下方是「上游设置」卡片，两个独立开关：

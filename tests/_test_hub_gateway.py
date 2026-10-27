@@ -95,7 +95,12 @@ class StubUpstream(BaseHTTPRequestHandler):
             return
         if self.path == "/v1/models":
             return self._json(200, {"object": "list", "data": [
-                {"id": m, "object": "model", "owned_by": self.label}
+                {"id": m, "object": "model", "owned_by": self.label,
+                 "reasoning_efforts": ["low", "high", "max"],
+                 "reasoning_default_effort": "high",
+                 "supports_reasoning": True,
+                 "max_output_tokens": 128000,
+                 "context_length": 1000000}
                 for m in self.models]})
         if self.path.startswith("/accounts"):
             return self._json(200, {"accounts": [
@@ -249,6 +254,25 @@ def main():
     check("wb/qoder 模型标记 openai 协议",
           proto.get("deepseek-v4.1-flash") == "openai"
           and proto.get("qmodel_38max") == "openai", proto)
+
+    # ---------------- 上游模型元数据透传（客户端据此判断推理能力） ----------------
+    status, raw = http(base, "/v1/models")
+    rows = json.loads(raw)["data"]
+    first = rows[0]
+    check("透传上游 reasoning_efforts",
+          first.get("reasoning_efforts") == ["low", "high", "max"], first)
+    check("透传 reasoning_default_effort",
+          first.get("reasoning_default_effort") == "high", first)
+    check("透传 supports_reasoning", first.get("supports_reasoning") is True, first)
+    check("透传 max_output_tokens / context_length",
+          first.get("max_output_tokens") == 128000
+          and first.get("context_length") == 1000000, first)
+    check("仍带中枢的 provider / protocol",
+          first.get("provider") and first.get("protocol"), first)
+
+    status, raw = http(base, "/api/hub/models", headers={"X-Panel-Token": "x"})
+    # 面板接口需要会话，这里只关心 entries 形状（无会话时应 401）
+    check("面板模型接口仍受面板鉴权保护", status == 401, status)
 
     # ---------------- 路由 ----------------
     calls.clear()
