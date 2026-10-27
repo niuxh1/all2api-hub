@@ -22,7 +22,7 @@
 This project is for protocol research and personal use only. Prefer the official client, do not use your primary account, and do not resell or share access.
 
 <p align="center">
-  <a href="https://github.com/ardeyouxipianyi/workbuddy2api-hub/releases"><img src="https://img.shields.io/badge/Release-v1.7.33-2496ED?style=flat-square" alt="Version 1.7.33"></a>
+  <a href="https://github.com/niuxh1/all2api-hub/releases"><img src="https://img.shields.io/badge/Release-v1.7.33-2496ED?style=flat-square" alt="Version 1.7.33"></a>
   <img src="https://img.shields.io/badge/Python-3.9+-blue.svg?style=flat-square" alt="Python">
   <img src="https://img.shields.io/badge/API-OpenAI_Compatible-412991?style=flat-square" alt="OpenAI API">
   <img src="https://img.shields.io/badge/Dual_Realm-Intl_&_CN-0DBD8B?style=flat-square" alt="Dual Realm">
@@ -95,10 +95,10 @@ This project is for protocol research and personal use only. Prefer the official
 
 ```bash
 # 官方源（可直连 GitHub 环境）：
-curl -fsSL https://raw.githubusercontent.com/ardeyouxipianyi/workbuddy2api-hub/main/quick-deploy.sh | bash
+curl -fsSL https://raw.githubusercontent.com/niuxh1/all2api-hub/main/quick-deploy.sh | bash
 
 # 国内网络 / NAS 加速（Connection reset 时用）：
-curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/ardeyouxipianyi/workbuddy2api-hub/main/quick-deploy.sh | sudo bash
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/niuxh1/all2api-hub/main/quick-deploy.sh | sudo bash
 ```
 
 NAS（如飞牛 fnOS）普通用户没有 Docker 权限时，把结尾的 `bash` 换成 `sudo bash`。再次运行同一条命令即平滑升级，账号与用量数据不受影响。
@@ -106,7 +106,7 @@ NAS（如飞牛 fnOS）普通用户没有 Docker 权限时，把结尾的 `bash`
 **部署模式**：默认 `lan`（`8788:8788`，局域网内可访问）。部署到公网服务器、或只想本机能连时，把环境变量放在管道后的 `bash` 前面：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ardeyouxipianyi/workbuddy2api-hub/main/quick-deploy.sh | WB_DEPLOY_MODE=public bash
+curl -fsSL https://raw.githubusercontent.com/niuxh1/all2api-hub/main/quick-deploy.sh | WB_DEPLOY_MODE=public bash
 ```
 
 - `local` / `public` 只把宿主端口绑到 `127.0.0.1`，容器内仍是 `HOST=0.0.0.0`（Docker 转发需要）；
