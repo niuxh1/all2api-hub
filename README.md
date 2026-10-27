@@ -207,7 +207,8 @@ python tests/run_all.py realm      # 只跑名字里含 realm 的
 
 - **合并网关**：客户端只配 `http://127.0.0.1:8787/v1`；`/v1/models` 返回三边合并的清单，每条带 `provider` 与 `protocol`。请求按 `model` 派发：`wb/`、`qoder/`、`zcode/` 前缀强制指定，`routing.overrides` 可逐模型覆盖，同名模型走默认上游。
 - **统一看板**：`http://127.0.0.1:8787/` 是新的融合看板（上游状态、合并账号表、模型与路由、网关 Key、面板密码、运行日志）。点「+ 添加账号」就能在这个页面登录 WorkBuddy / Qoder（设备授权）或 ZCode（Z.AI 授权、粘贴 JWT/API Key），行内可禁用/删除；三个原始看板仍挂在 `/wb/`、`/qoder/`、`/zcode/` 下，代码一行未改。
-- **当前出口**：首页「当前出口」卡片选 `自动 / WorkBuddy / Qoder / ZCode`——多家都有的模型走选中的那家，**只在别家出现的模型仍正确转发到它自己的上游**（用 Qoder 的模型、出口设成 wb 也不会坏）；选 WorkBuddy / Qoder 时还能切「国际版 / 国内版」，与该上游自己看板里的区域开关是同一个状态。
+- **当前出口**：首页「当前出口」卡片选 `自动 / WorkBuddy / Qoder / ZCode`——多家都有的模型走选中的那家，**只在别家出现的模型仍正确转发到它自己的上游**（用 Qoder 的模型、出口设成 wb 也不会坏）。
+- **上游设置**：WorkBuddy / Qoder 的 `国际版 / 国内版` 各自手动切换（与出口无关）；`上游推理强度（upstream_effort）`可调 `跟随客户端 / none / minimal / low / medium / high / max`，选具体档位后中枢在转发 chat / responses 时统一写入 `reasoning_effort`（覆盖客户端值）。
 - **模型与路由**表格可随时刷新（右上角「刷新」，切页签也会自动拉一次，表头显示更新时间）。
 - **启动**：Windows 双击 `start-hub.bat`（后台，日志 `data/hub/logs/hub.log`）；macOS / Linux `./start-hub.sh`；停止用 `stop-hub.bat` / `stop-hub.sh`。
 - **ZCode 需要先装依赖**：`pip install -r vendor/zcode2api/requirements.txt`（第三方 FastAPI 应用，不是纯标准库）。Coding Plan（JWT）账号另需 Node + jsdom：`cd vendor/zcode2api/captcha_node && npm install`。

@@ -438,6 +438,36 @@ def main():
     check("区域切换真的发给了上游",
           any(c["path"] == "/realm" and '"cn"' in c["body"] for c in calls), calls)
 
+    # ---------------- 上游推理强度（覆盖客户端带来的 reasoning_effort） ----------------
+    status, raw = http(base, "/api/hub/settings", "POST",
+                       {"routing": {"upstream_effort": "high"}},
+                       headers={"X-Panel-Token": token})
+    check("保存推理强度 high", status == 200
+          and json.loads(raw)["settings"]["routing"]["upstream_effort"] == "high",
+          raw[:200])
+    calls.clear()
+    status, raw = http(base, "/v1/chat/completions", "POST",
+                       {"model": "auto", "reasoning_effort": "low", "messages": []})
+    sent = [c for c in calls if c["path"].endswith("/chat/completions")]
+    check("转发时覆盖为 high",
+          sent and json.loads(sent[-1]["body"]).get("reasoning_effort") == "high",
+          sent[-1]["body"][:200] if sent else None)
+    status, raw = http(base, "/v1/models")
+    check("GET 不受 effort 影响（不带改写）", status == 200, status)
+    status, raw = http(base, "/api/hub/settings", "POST",
+                       {"routing": {"upstream_effort": "auto"}},
+                       headers={"X-Panel-Token": token})
+    check("切回 auto", status == 200
+          and json.loads(raw)["settings"]["routing"]["upstream_effort"] == "auto",
+          raw[:200])
+    calls.clear()
+    status, raw = http(base, "/v1/chat/completions", "POST",
+                       {"model": "auto", "reasoning_effort": "low", "messages": []})
+    sent = [c for c in calls if c["path"].endswith("/chat/completions")]
+    check("auto 时不改写客户端值",
+          sent and json.loads(sent[-1]["body"]).get("reasoning_effort") == "low",
+          sent[-1]["body"][:200] if sent else None)
+
     # 模型清单跟上游走：上游新增模型后，强制刷新应立刻看到
     wb_server.RequestHandlerClass.models = ("auto", "deepseek-v4.1-flash",
                                             "brand-new-model")

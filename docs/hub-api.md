@@ -278,6 +278,22 @@
 
 `overview` 里也带一份同样的 `egress` 对象，面板据此渲染「当前出口」卡片。
 
+`egress.upstream_effort` 是全局的「上游推理强度」：`auto`（跟随客户端）或
+`none/minimal/low/medium/high/max`。设为具体档位后，中枢在转发
+`/v1/chat/completions` 与 `/v1/responses` 时统一写入 `reasoning_effort`
+（覆盖客户端带来的值）；`auto` 完全不动请求。通过
+`POST /api/hub/settings {"routing":{"upstream_effort":"high"}}` 修改。
+
+### `POST /api/hub/providers/<id>/realm`
+
+```json
+{"realm": "intl"}
+```
+
+只对 `wb` / `qoder` 有效（zcode 无区域概念），把**该上游**切到国际版 / 国内版——
+与在它自己看板里切换是同一个状态，与「当前出口」无关（不需要把它设为出口）。
+响应：`{"ok": true, "egress": { ...含 provider_realms... }}`。
+
 ---
 
 ## 5.5 统一账号管理

@@ -174,6 +174,18 @@ def main():
     check("可切回 auto", routing["active_provider"] == "auto"
           and routing["active_realm"] == "", routing)
 
+    # 上游推理强度：auto / 具体档位
+    check("推理强度默认 auto", S.routing(d)["upstream_effort"] == "auto",
+          S.routing(d))
+    routing = S.set_routing(d, {"upstream_effort": "high"})
+    check("推理强度可设为具体档位", routing["upstream_effort"] == "high", routing)
+    routing = S.set_routing(d, {"upstream_effort": "turbo"})
+    check("非法档位被忽略", routing["upstream_effort"] == "high", routing)
+    routing = S.set_routing(d, {"upstream_effort": "none"})
+    check("可设为 none（关闭思考）", routing["upstream_effort"] == "none", routing)
+    routing = S.set_routing(d, {"upstream_effort": "auto"})
+    check("可切回跟随客户端", routing["upstream_effort"] == "auto", routing)
+
     # ---------------- 上游开关 ----------------
     d = fresh()
     providers = S.set_providers(d, {"wb": {"port": 9100, "enabled": False}})

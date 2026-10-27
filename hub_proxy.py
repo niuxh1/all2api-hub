@@ -525,7 +525,13 @@ class ProviderRuntime(object):
         return module
 
     def _install_log_capture(self):
-        """把上游 log() 的输出同时收进环形缓冲（面板「运行日志」用）。"""
+        """把上游 log() 的输出收进两个环形缓冲：本上游的（面板按上游筛）与
+        中枢总线的（/logs 端点，console_tail 与「全部日志」都看这里）。
+
+        上游日志进总线很重要：pythonw 静默启动时 stdout 拿不到任何东西，文件
+        日志是空的；console_tail --port 走 /logs，看不到上游行的话日志窗就只有
+        中枢自己的几行启动信息。
+        """
         if self._capture_installed:
             return
         module = self._load_module()
@@ -533,10 +539,25 @@ class ProviderRuntime(object):
         if original is None:
             return
         buf = self._logbuf
+        hub = self.hub
+        tag = self.pid
 
         def _capture(message, *args, **kwargs):
+            stamp = time.strftime("%H:%M:%S")
             try:
-                buf.append("%s %s" % (time.strftime("%H:%M:%S"), message))
+                buf.append("%s %s" % (stamp, message))
+            except Exception:
+                pass
+            try:
+                with hub._log_lock:
+                    hub._log_seq += 1
+                    hub._log_ring.append({
+                        "id": hub._log_seq,
+                        "time": stamp,
+                        "level": str(kwargs.get("level") or "INFO"),
+                        "tag": tag,
+                        "msg": str(message),
+                    })
             except Exception:
                 pass
             return original(message, *args, **kwargs)
@@ -1460,6 +1481,7 @@ class Hub(object):
             "provider": routing.get("active_provider") or "auto",
             "realm": routing.get("active_realm") or "",
             "default_provider": routing.get("default_provider"),
+            "upstream_effort": routing.get("upstream_effort") or "auto",
             "provider_realms": self.provider_realms(),
         }
 
@@ -2154,6 +2176,21 @@ class HubHandler(BaseHTTPRequestHandler):
                 return self._json(400, {"ok": False, "error": str(exc)})
             return self._json(200, {"ok": True, "egress": data})
 
+        match = re.match(r"^/api/hub/providers/([a-z]+)/realm$", path)
+        if match and method == "POST":
+            pid = match.group(1)
+            if pid not in ("wb", "qoder"):
+                return self._json(400, {"ok": False,
+                                        "error": "只有 WorkBuddy / Qoder 有区域概念"})
+            payload = self._json_body() or {}
+            realm = str(payload.get("realm") or "").strip().lower()
+            if realm not in ("intl", "cn"):
+                return self._json(400, {"ok": False, "error": "realm 必须是 intl 或 cn"})
+            if not hub._switch_provider_realm(pid, realm):
+                return self._json(502, {"ok": False,
+                                        "error": "%s 切换区域失败（上游未就绪？）" % pid})
+            return self._json(200, {"ok": True, "egress": hub.egress()})
+
         match = re.match(r"^/api/hub/providers/([a-z]+)/(start|stop|restart)$", path)
         if match and method == "POST":
             pid, action = match.group(1), match.group(2)
@@ -2248,9 +2285,22 @@ class HubHandler(BaseHTTPRequestHandler):
                 " base URL 用 http://<host>:<port>，不要带 /v1）。"
                 % (model or "(未指定)", runtime.spec["label"]),
                 "unsupported_protocol")
-        if isinstance(payload, dict) and route_id and route_id != model:
-            payload["model"] = route_id
-            body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        if isinstance(payload, dict):
+            changed = False
+            if route_id and route_id != model:
+                payload["model"] = route_id
+                changed = True
+            effort = (hub_settings.routing(self.hub.data_dir)
+                      .get("upstream_effort") or "auto")
+            if effort != "auto" and path in ("/v1/chat/completions",
+                                             "/v1/responses"):
+                # 面板上「上游推理强度」设了具体档位时，覆盖客户端带来的值。
+                # 两个上游都认 reasoning_effort（qoder 还会回落到 reasoning.effort），
+                # 所以一处改写对两边都有效。
+                payload["reasoning_effort"] = effort
+                changed = True
+            if changed:
+                body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         if not runtime.health():
             return self._error(502, "%s 上游未就绪（state=%s）"
                                % (runtime.spec["label"], runtime.state),

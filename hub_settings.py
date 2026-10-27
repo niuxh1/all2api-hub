@@ -487,6 +487,8 @@ def set_providers(data_dir, patch):
 
 
 REALMS = ("intl", "cn")
+# 上游推理强度：auto = 跟随客户端；其余值会覆盖客户端带来的 reasoning_effort。
+EFFORTS = ("none", "minimal", "low", "medium", "high", "max")
 
 
 def routing(data_dir):
@@ -504,6 +506,9 @@ def routing(data_dir):
     realm = str(stored.get("active_realm") or "").strip().lower()
     if realm not in REALMS:
         realm = ""
+    effort = str(stored.get("upstream_effort") or "auto").strip().lower()
+    if effort not in EFFORTS:
+        effort = "auto"
     overrides = {}
     raw_overrides = stored.get("overrides")
     if isinstance(raw_overrides, dict):
@@ -513,7 +518,8 @@ def routing(data_dir):
             if model and provider in PROVIDER_SPECS:
                 overrides[model] = provider
     return {"default_provider": default, "active_provider": active,
-            "active_realm": realm, "overrides": overrides}
+            "active_realm": realm, "upstream_effort": effort,
+            "overrides": overrides}
 
 
 def set_routing(data_dir, patch):
@@ -533,6 +539,10 @@ def set_routing(data_dir, patch):
         realm = str(patch.get("active_realm") or "").strip().lower()
         if realm in REALMS or realm == "":
             current["active_realm"] = realm
+    if "upstream_effort" in patch:
+        effort = str(patch.get("upstream_effort") or "").strip().lower()
+        if effort == "auto" or effort in EFFORTS:
+            current["upstream_effort"] = effort
     if isinstance(patch.get("overrides"), dict):
         for model, provider in patch["overrides"].items():
             model = str(model or "").strip()

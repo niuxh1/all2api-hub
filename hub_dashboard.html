@@ -375,13 +375,41 @@ main{padding:16px clamp(12px,2vw,26px) 64px;max-width:1680px;margin:0 auto}
         </div>
         <span class="grow"></span>
         <div class="seg" id="egressProviders"></div>
-        <div class="seg hidden" id="egressRealms"></div>
       </div>
       <p class="hint" id="egressHint" style="margin:8px 0 0">
         「自动」= 按模型清单派发；选定某一家后，<b>多家都有的模型</b>走它，
         <b>只属于别家的模型仍然走它自己的上游</b>（不会因为出口选错而失败）。
         带 <code>wb/</code>、<code>qoder/</code>、<code>zcode/</code> 前缀的请求永远按前缀走。
         WorkBuddy / Qoder 还可以单独切国际版 / 国内版。
+      </p>
+    </div>
+
+    <div class="card" id="upstreamCard" style="margin-top:14px">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <label class="field" style="margin:0"><span>WorkBuddy 区域</span>
+          <div class="seg" id="realmWB"></div>
+        </label>
+        <label class="field" style="margin:0"><span>Qoder 区域</span>
+          <div class="seg" id="realmQoder"></div>
+        </label>
+        <span class="grow"></span>
+        <label class="field" style="margin:0"><span>上游推理强度</span>
+          <select class="input" id="upstreamEffort">
+            <option value="auto">跟随客户端</option>
+            <option value="none">none（关闭思考）</option>
+            <option value="minimal">minimal</option>
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+            <option value="max">max</option>
+          </select>
+        </label>
+      </div>
+      <p class="hint" style="margin:8px 0 0">
+        区域：<b>WorkBuddy / Qoder 各自手动切换国际版 / 国内版</b>（与各自看板里的区域开关是同一个状态，只认有对应区域账号的出口）。
+        推理强度：选具体档位后，中枢会在转发 <code>/v1/chat/completions</code> 与
+        <code>/v1/responses</code> 时统一写入 <code>reasoning_effort</code>（覆盖客户端带来的值）；
+        「跟随客户端」则完全不动请求。
       </p>
     </div>
 
@@ -1170,6 +1198,7 @@ main{padding:16px clamp(12px,2vw,26px) 64px;max-width:1680px;margin:0 auto}
       setText('uptime', fmtDuration(state.uptime.base + (Date.now() - state.uptime.at) / 1000));
     }
     renderEgress();
+    renderUpstream();
     buildCurl();
   }
 
@@ -1183,6 +1212,7 @@ main{padding:16px clamp(12px,2vw,26px) 64px;max-width:1680px;margin:0 auto}
     return {
       provider: eg.provider || 'auto',
       realm: eg.realm || '',
+      effort: eg.upstream_effort || 'auto',
       realms: eg.provider_realms || {}
     };
   }
@@ -1211,21 +1241,6 @@ main{padding:16px clamp(12px,2vw,26px) 64px;max-width:1680px;margin:0 auto}
       });
       box.innerHTML = html;
     }
-    var realmBox = $('egressRealms');
-    var showRealm = eg.provider === 'wb' || eg.provider === 'qoder';
-    if (realmBox){
-      realmBox.classList.toggle('hidden', !showRealm);
-      if (showRealm){
-        // 以该上游**实际**在用的区域为准（它自己的看板也能改，这里要跟得上）
-        var current = eg.realms[eg.provider] || eg.realm || 'intl';
-        var rh = '';
-        ['intl', 'cn'].forEach(function(id){
-          rh += '<button class="seg-btn' + (id === current ? ' on' : '') +
-                '" type="button" data-realm="' + id + '">' + esc(REALM_TEXT[id] || id) + '</button>';
-        });
-        realmBox.innerHTML = rh;
-      }
-    }
     var state_el = $('egressState');
     if (state_el){
       if (!state.loaded.overview){
@@ -1238,6 +1253,56 @@ main{padding:16px clamp(12px,2vw,26px) 64px;max-width:1680px;margin:0 auto}
           + '（共有模型走它，专属模型仍走自己的上游）';
       }
     }
+  }
+
+  // 上游设置：WorkBuddy / Qoder 的区域各自独立切换；上游推理强度是一个全局覆盖。
+  var EFFORT_TEXT = { none:'none（关闭思考）', minimal:'minimal', low:'low',
+                      medium:'medium', high:'high', max:'max' };
+
+  function renderUpstream(){
+    var eg = egressData();
+    ['wb', 'qoder'].forEach(function(pid){
+      var box = $(pid === 'wb' ? 'realmWB' : 'realmQoder');
+      if (!box) return;
+      var current = (eg.realms && (eg.realms[pid] || '')) || '';
+      var html = '';
+      ['intl', 'cn'].forEach(function(id){
+        html += '<button class="seg-btn' + (id === current ? ' on' : '') +
+                '" type="button" data-prov="' + pid + '" data-realm="' + id + '">' +
+                esc(REALM_TEXT[id] || id) + '</button>';
+      });
+      box.innerHTML = html;
+    });
+    var sel = $('upstreamEffort');
+    if (sel){
+      var effort = eg.effort || 'auto';
+      if (!effort || effort === 'auto'){ sel.value = 'auto'; }
+      else { sel.value = EFFORT_TEXT[effort] ? effort : 'auto'; }
+    }
+  }
+
+  function setProviderRealm(pid, realm){
+    var url = '/api/hub/providers/' + encodeURIComponent(pid) + '/realm';
+    return api(url, { method:'POST', body: JSON.stringify({ realm: realm }) })
+      .then(function(res){
+        if (!res || !res.ok) throw new Error((res && res.error) || '切换失败');
+        return refreshOverviewAfterChange();
+      })
+      .catch(function(err){
+        showBanner('切换区域失败：' + (err && err.message ? err.message : err), 'action');
+      });
+  }
+
+  function setEffort(level){
+    return api('/api/hub/settings', { method:'POST',
+             body: JSON.stringify({ routing: { upstream_effort: level } }) })
+      .then(function(res){
+        if (!res || !res.ok) throw new Error((res && res.error) || '保存失败');
+        return refreshOverviewAfterChange();
+      })
+      .catch(function(err){
+        showBanner('保存推理强度失败：' + (err && err.message ? err.message : err), 'action');
+      });
   }
 
   function setEgress(provider, realm){
@@ -2321,13 +2386,19 @@ main{padding:16px clamp(12px,2vw,26px) 64px;max-width:1680px;margin:0 auto}
       }
       setEgress(pick, realm);
     });
-    on('egressRealms', 'click', function(e){
-      var btn = e.target.closest ? e.target.closest('.seg-btn') : null;
-      if (!btn) return;
-      var realm = btn.getAttribute('data-realm') || '';
-      var eg = egressData();
-      if (eg.provider !== 'wb' && eg.provider !== 'qoder') return;
-      setEgress(eg.provider, realm);
+    var realmBoxes = ['realmWB', 'realmQoder'];
+    for (var rb = 0; rb < realmBoxes.length; rb++){
+      (function(boxId){
+        on(boxId, 'click', function(e){
+          var btn = e.target.closest ? e.target.closest('.seg-btn') : null;
+          if (!btn) return;
+          setProviderRealm(btn.getAttribute('data-prov') || '',
+                           btn.getAttribute('data-realm') || '');
+        });
+      })(realmBoxes[rb]);
+    }
+    on('upstreamEffort', 'change', function(e){
+      setEffort(e.currentTarget.value || 'auto');
     });
 
     /* ---- 添加账号模态框 ---- */
