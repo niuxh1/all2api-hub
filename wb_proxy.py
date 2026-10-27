@@ -16858,6 +16858,44 @@ def _anthropic_blocks_to_messages(role, blocks):
     return out
 
 
+def anthropic_model_alias_map(model_ids):
+    """Map Claude-safe aliases (``claude-*``) back to gateway model IDs.
+
+    Claude Code only adds gateway-discovered models whose IDs match its custom
+    model validation (``^claude-[a-z0-9-]+$``). Keep the OpenAI-facing catalog
+    untouched and expose aliases only to Anthropic clients.
+    """
+    aliases = {}
+    for raw in model_ids:
+        mid = str(raw or "").strip()
+        if not mid:
+            continue
+        slug = re.sub(r"[^a-z0-9-]+", "-", mid.lower()).strip("-")
+        base = "claude-" + (slug or "model")
+        alias = base
+        suffix = 2
+        while alias in aliases:
+            alias = "%s-%d" % (base, suffix)
+            suffix += 1
+        aliases[alias] = mid
+    return aliases
+
+
+def resolve_anthropic_model_alias(model, realm=None):
+    """Translate a discovered Claude alias back to the real gateway model ID."""
+    mid = str(model or "").strip()
+    if not mid.startswith("claude-"):
+        return mid
+    try:
+        entries = fetch_models(realm=realm or CURRENT_REALM)
+    except Exception:
+        return mid
+    ids = [str(item[0]) for item in entries if item and item[0]]
+    if mid in ids:
+        return mid
+    return anthropic_model_alias_map(ids).get(mid, mid)
+
+
 def messages_to_chat(payload):
     """Translate an Anthropic Messages request into Chat Completions."""
     if not isinstance(payload, dict):
@@ -18849,8 +18887,40 @@ class Handler(BaseHTTPRequestHandler):
                     "required": "standard",
                     "at": gate_at,
                 }
+        # Anthropic Models API clients (Claude Code gateway discovery) read
+        # display_name/created_at/type and pagination fields. Emit them
+        # alongside the OpenAI-compatible shape; extra keys are harmless.
+        # getattr：套件会直接 new 一个 Handler 调 _get_v1_models()，那种实例没有
+        # 请求头；没有头就当不是 Anthropic 客户端。
+        _headers = getattr(self, "headers", None) or {}
+        anthropic_request = bool(_headers.get("anthropic-version"))
+        if anthropic_request and data:
+            aliases = anthropic_model_alias_map(m.get("id") for m in data)
+            alias_by_model = {mid: alias for alias, mid in aliases.items()}
+            for m in data:
+                real_id = m.get("id")
+                alias = alias_by_model.get(real_id)
+                if alias:
+                    m["upstream_model_id"] = real_id
+                    m["id"] = alias
+        for m in data:
+            m.setdefault("type", "model")
+            if "display_name" not in m:
+                m["display_name"] = m.get("name") or m.get("id") or ""
+            if "created_at" not in m:
+                created = m.get("created")
+                try:
+                    created = int(created)
+                except (TypeError, ValueError):
+                    created = int(time.time())
+                m["created_at"] = time.strftime(
+                    "%Y-%m-%dT%H:%M:%SZ", time.gmtime(created))
         payload = {"object": "list", "data": data,
-                   "realm": req_realm or CURRENT_REALM}
+                   "realm": req_realm or CURRENT_REALM,
+                   "has_more": False}
+        if data:
+            payload["first_id"] = data[0].get("id")
+            payload["last_id"] = data[-1].get("id")
         # 来源说明（面板展示用）：这批清单是上游 API 实时取的，还是读的
         # 本机桌面缓存文件/内置快照，以及各自的时间戳。
         meta = catalog_meta(req_realm)
@@ -21864,6 +21934,11 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError as exc:
             return self._anthropic_error(400, str(exc), "invalid_request_error")
         model = chat_req.get("model") or "unknown"
+        resolved_model = resolve_anthropic_model_alias(
+            model, self._request_realm() or CURRENT_REALM)
+        if resolved_model != model:
+            chat_req["model"] = resolved_model
+            model = resolved_model
         want_stream = bool(chat_req.get("stream"))
         session_key = extract_session_key(self.headers, chat_req)
         t_start = time.time()

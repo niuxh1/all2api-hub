@@ -24,6 +24,8 @@ import urllib.error
 
 HOST = "127.0.0.1"
 PORT = 8788
+# --file：直接跟一个日志文件（融合中枢的 pythonw 静默启动就是这种模式）。
+FILE = ""
 TOKEN = ""
 PASSWORD = os.environ.get("WB_PANEL_PASSWORD") or "admin"
 REFRESH = 1.0
@@ -63,7 +65,7 @@ def _ensure_console_output():
 
 
 def parse_args(argv):
-    global HOST, PORT, TOKEN, PASSWORD
+    global HOST, PORT, TOKEN, PASSWORD, FILE
     i = 1
     while i < len(argv):
         a = argv[i]
@@ -81,6 +83,9 @@ def parse_args(argv):
             i += 2
         elif a == "--password" and i + 1 < len(argv):
             PASSWORD = argv[i + 1]
+            i += 2
+        elif a == "--file" and i + 1 < len(argv):
+            FILE = argv[i + 1]
             i += 2
         else:
             i += 1
@@ -125,6 +130,68 @@ def fmt(entry):
     return "%s [%s] %s" % (t, lvl, msg)
 
 
+def _service_alive():
+    """文件模式下判断服务是否还活着（端口上还有人应答 /health）。"""
+    if not PORT:
+        return True
+    try:
+        with _OPENER.open(_url("/health"), timeout=2) as r:
+            return r.status == 200
+    except Exception:
+        return False
+
+
+def tail_file():
+    """跟一个日志文件：先补最后 200 行，再按增量打印。
+
+    融合中枢用 pythonw 静默启动时没有控制台，stdout 被重定向到
+    data/hub/logs/hub.log；这个查看器就是「那个窗口」，关掉它不影响服务。
+    """
+    print("=" * 60, flush=True)
+    print("  Hub - live console (file mode)")
+    print("  %s" % FILE)
+    print("  关闭本窗口【不会】停止服务，仅关闭日志查看。")
+    print("  按 Ctrl+C 仅关闭本查看器。")
+    print("=" * 60)
+    pos = 0
+    try:
+        size = os.path.getsize(FILE)
+        with open(FILE, "rb") as fh:
+            fh.seek(max(0, size - 64 * 1024))
+            tail = fh.read().decode("utf-8", "replace").splitlines()[-200:]
+        for line in tail:
+            print(line)
+        pos = size
+    except OSError:
+        print("[viewer] 日志文件还没生成：%s" % FILE)
+    fails = 0
+    while True:
+        time.sleep(0.8)
+        try:
+            size = os.path.getsize(FILE)
+        except OSError:
+            size = 0
+        if size < pos:          # 日志被轮转/清空
+            pos = 0
+        if size > pos:
+            try:
+                with open(FILE, "rb") as fh:
+                    fh.seek(pos)
+                    chunk = fh.read()
+                    pos = fh.tell()
+                sys.stdout.write(chunk.decode("utf-8", "replace"))
+                sys.stdout.flush()
+            except OSError:
+                pass
+        if _service_alive():
+            fails = 0
+        else:
+            fails += 1
+            if fails >= 3:
+                print("[viewer] 服务已关闭，查看器退出。")
+                return
+
+
 def main():
     _ensure_console_output()
     for stream in (sys.stdout, sys.stderr):
@@ -133,6 +200,8 @@ def main():
         except (AttributeError, ValueError):
             pass
     parse_args(sys.argv)
+    if FILE:
+        return tail_file()
     print("=" * 60, flush=True)
     print("  WorkBuddy proxy - live console (port %d)" % PORT)
     print("  关闭本窗口【不会】停止服务，仅关闭日志查看。")

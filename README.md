@@ -42,7 +42,8 @@ This project is for protocol research and personal use only. Prefer the official
 - **限额护栏**：保留积分 · 每日 Token · 每日积分 · 按模型 Token 四条账号级护栏，单账号独立计数，本地 0 点解封（默认全部关闭）；
 - **OpenRouter 价估算**：把 token 折算成等价花费（人民币 / 美元可切），逐条请求可悬停查看定价来源；
 - **多 Key 与出口绑定**：每个 Key 可固定走国际版或国内版、可限定模型，用量按 Key 归属；
-- **Web 看板**：指标卡片、模型性能与用量大表、请求流水、账号与任务管理一屏可查。
+- **Web 看板**：指标卡片、模型性能与用量大表、请求流水、账号与任务管理一屏可查；
+- **融合中枢（Hub）**：`hub_proxy.py` 用**一个进程、一个端口（8787）**同时托管 WorkBuddy、Qoder、ZCode——`/v1` 按模型名自动派发，**一个看板就能登录/启停三家的账号并随时切换**（见 [docs/hub.md](docs/hub.md)）。
 
 > ⚡ **Vibe Coding 产物**：本项目为 100% Vibe Coding 协同产物——人类开发者提出架构与业务意图，AI 助手端到端完成逆向分析、链路调度、WAF 指纹脱敏与界面编写。
 
@@ -187,8 +188,31 @@ python tests/run_all.py realm      # 只跑名字里含 realm 的
 - 211 个套件：158 个 Python + 53 个 JS；JS 需要 PATH 上有 `node`，缺失时会跳过并提示。
 - 212 个套件：158 个 Python + 54 个 JS；JS 需要 PATH 上有 `node`，缺失时会跳过并提示。
 - 211 个套件：158 个 Python + 53 个 JS；JS 需要 PATH 上有 `node`，缺失时会跳过并提示。
+- 308 个套件：240 个 Python + 68 个 JS；JS 需要 PATH 上有 `node`，缺失时会跳过并提示。
 - `tests/_mobile_check.py` 是独立的 Playwright 手机/桌面布局检查器（需自行安装 Playwright），按需手动运行，不在上面的套件集里。
 - CI（`.github/workflows/tests.yml`）跑同一条命令：Ubuntu 上 python 3.9 与 3.12（3.9 是本项目声称的最低版本），Windows 上 python 3.12；推送 `v*` tag 时额外断言 **tag == 源码版本**（`-ci` 演练 tag 豁免）。
+
+### 7. 融合中枢（WorkBuddy × Qoder × ZCode）
+
+![融合中枢看板](docs/img/hub/dashboard.png)
+
+*一个进程、一个端口：三张上游卡片、三家合并的账号表（可登录/禁用/删除）、模型路由都在这一页。*
+不想分别启动三个服务时，用 `hub_proxy.py`：它自己监听 **8787**，三套上游都在**同一个进程内**跑（不再有三个子进程、也不再占 8788/8790/8791），对外只暴露中枢一个端口。
+
+| 上游 | 内部端口 | 挂载 | 协议 |
+|---|---|---|---|
+| WorkBuddy | 自动分配 | `/wb/` | OpenAI + Anthropic |
+| Qoder | 自动分配 | `/qoder/` | OpenAI + Anthropic |
+| ZCode（`vendor/zcode2api`） | 自动分配 | `/zcode/` | **仅 Anthropic Messages** |
+
+- **合并网关**：客户端只配 `http://127.0.0.1:8787/v1`；`/v1/models` 返回三边合并的清单，每条带 `provider` 与 `protocol`。请求按 `model` 派发：`wb/`、`qoder/`、`zcode/` 前缀强制指定，`routing.overrides` 可逐模型覆盖，同名模型走默认上游。
+- **统一看板**：`http://127.0.0.1:8787/` 是新的融合看板（上游状态、合并账号表、模型与路由、网关 Key、面板密码、运行日志）。点「+ 添加账号」就能在这个页面登录 WorkBuddy / Qoder（设备授权）或 ZCode（Z.AI 授权、粘贴 JWT/API Key），行内可禁用/删除；三个原始看板仍挂在 `/wb/`、`/qoder/`、`/zcode/` 下，代码一行未改。
+- **当前出口**：首页「当前出口」卡片选 `自动 / WorkBuddy / Qoder / ZCode`——多家都有的模型走选中的那家，**只在别家出现的模型仍正确转发到它自己的上游**（用 Qoder 的模型、出口设成 wb 也不会坏）；选 WorkBuddy / Qoder 时还能切「国际版 / 国内版」，与该上游自己看板里的区域开关是同一个状态。
+- **模型与路由**表格可随时刷新（右上角「刷新」，切页签也会自动拉一次，表头显示更新时间）。
+- **启动**：Windows 双击 `start-hub.bat`（后台，日志 `data/hub/logs/hub.log`）；macOS / Linux `./start-hub.sh`；停止用 `stop-hub.bat` / `stop-hub.sh`。
+- **ZCode 需要先装依赖**：`pip install -r vendor/zcode2api/requirements.txt`（第三方 FastAPI 应用，不是纯标准库）。Coding Plan（JWT）账号另需 Node + jsdom：`cd vendor/zcode2api/captcha_node && npm install`。
+- **数据目录**：WorkBuddy 仍在 `accounts/`、`usage/`；Qoder 在 `data/qoder/`；ZCode 在 `data/zcode/`（SQLite）；中枢自己的在 `data/hub/`。
+- 完整操作手册见 **[docs/hub.md](docs/hub.md)**，接口契约见 **[docs/hub-api.md](docs/hub-api.md)**。
 
 ---
 
@@ -494,6 +518,8 @@ export ANTHROPIC_API_KEY="你在看板设置中添加并绑定的API_Key"
 <!-- 发版时：把下面的 Unreleased 段落整理成新版本号（## vX.Y.Z），整体移入 docs/CHANGELOG.md 顶部 -->
 
 - **v1.7.33 已于 2026-10-23 发布**：本版集成 #630、#632、#635、#638，并自本版起进入低频维护。完整变更与验证记录见 **[docs/CHANGELOG.md](docs/CHANGELOG.md#v173)**；下一版的改动继续写在本段。
+
+- **融合中枢：一个端口同时托管 WorkBuddy / Qoder / ZCode，并把三套上游合并成一个 `/v1`**：新增 `hub_proxy.py`（默认 8787）+ `hub_settings.py` + `hub_dashboard.html`。三套上游在**同一个进程内**跑（不再有子进程与额外端口），中枢守护它们的状态与日志（掉线按退避自动重启），`/v1/models` 合并三边模型并标注 `provider` / `protocol`，`/v1/chat/completions`、`/v1/responses`、`/v1/messages` 按模型名派发（`wb/`、`qoder/`、`zcode/` 前缀强制指定，`routing.overrides` 逐模型覆盖，同名模型走默认上游，未知模型兜底默认上游）。三套原始看板挂到 `/wb/`、`/qoder/`、`/zcode/` 下**代码零改动**：服务端改写 HTML 的 `href`/`src`/`action` 与 3xx 的 `Location`，再注入一段 fetch/window.open/链接点击的 shim。Qoder 侧整仓并入（`qoder_*.py`、`qoder_dashboard.html`、模型快照与 80 个套件），数据目录隔离到 `data/qoder/`；ZCode 以 `vendor/zcode2api` 形式并入（第三方 FastAPI 应用，`data/zcode/`），因它只有 Anthropic Messages，用 chat/responses 调它的模型会得到明确的 `unsupported_protocol` 而不是上游 404。中枢→上游用一次性内部密钥；面板新增统一账号管理（登录/启停/删除/导入），一个界面就能登录三家账号；首页新增「当前出口」偏好开关（自动 / 三家任选；多家都有的模型跟随它，专属模型仍走自己的上游；wb、qoder 可再切国际版·国内版，切换即刻写回上游），模型与路由表格支持手动/切页自动刷新且与上游最新目录一致。另外修掉一个环境兼容问题：系统代理把 `no_proxy` 写成 `[::1]` 时 httpx 会解析失败，导致 ZCode 授权登录 502——中枢启动时统一把该写法归一化。新增 `docs/hub.md`（操作手册）与 `docs/hub-api.md`（面板契约）、`start-hub.*` / `stop-hub.*` 四个启动脚本，新增 3 个 Python 套件（路由/合并/挂载/鉴权、设置层、进程与用量口径）。 / **Fusion hub: WorkBuddy, Qoder and ZCode behind one port and one `/v1`**: new `hub_proxy.py` (8787 by default), `hub_settings.py` and `hub_dashboard.html`. The three upstreams now run **inside the hub process** (one PID, one public port; a dead upstream is restarted with backoff and its state/logs surface in the panel), merges their model catalogues into `/v1/models` with `provider` / `protocol` tags, and dispatches `/v1/chat/completions`, `/v1/responses` and `/v1/messages` by model name (`wb/`, `qoder/`, `zcode/` prefixes force a side, `routing.overrides` pins a model, same-name models follow the default upstream, unknown ones fall back to it). The three original dashboards are mounted at `/wb/`, `/qoder/`, `/zcode/` with **zero code changes**: the hub rewrites HTML `href`/`src`/`action` attributes and 3xx `Location` headers, then injects a fetch/window.open/link-click shim. The whole Qoder repo is folded in (`qoder_*.py`, `qoder_dashboard.html`, catalogue snapshots and its 80 suites) with its data isolated under `data/qoder/`; ZCode arrives as `vendor/zcode2api` (a third-party FastAPI app, data under `data/zcode/`) and, because it only speaks Anthropic Messages, calling its models through chat/responses returns an explicit `unsupported_protocol` instead of an upstream 404. Hub-to-upstream calls use the upstream's own panel key when it has one (an internal per-run key otherwise); the panel gained unified account management (login / enable / disable / delete / import) so all three providers are managed from one screen, plus an egress preference (auto / wb / qoder / zcode: shared models follow it while provider-exclusive models still go to their owner, with intl-cn realm switching for wb and qoder that writes through to the upstream) and a refreshable model-and-routing table that tracks each upstream's live catalogue. Also fixed an environment incompatibility: a `no_proxy` entry written as `[::1]` makes httpx fail to parse, which surfaced as ZCode OAuth returning 502 - the hub now normalises that form at startup. Adds `docs/hub.md` (operator guide), `docs/hub-api.md` (panel contract), four `start-hub.*` / `stop-hub.*` launchers, and three new Python suites (routing/merge/mount/auth, settings, process and usage accounting).
 
 - **修正 CN 专属模型判定，并给 OpenCode 写入真实上下文上限**（#618 / #625）：`minimax-` 曾被当成整个模型家族的 CN 专属前缀，于是国际版也提供的 `minimax-m3.1-flash` 被本地 400 拦下。现在只保留确定的 CN 独占项（`deepseek-v4-pro*` 与显式 `minimax-m3`），同族其他模型按出口实际目录判断。OpenCode 一键配置此前只写空的模型条目，客户端只能回落到自己的 200k 默认值；现在把网关目录中的 `context_window` / `max_output` 写进 `limit.context` / `limit.output`，没有规格的条目仍保持空对象。新增回归覆盖。 / Narrow the China-only model gate and give OpenCode the real context limit (#618 / #625): `minimax-` used to mark the whole family as CN-exclusive, so the globally served `minimax-m3.1-flash` was refused locally with a 400. Only the confirmed China-only entries remain (`deepseek-v4-pro*` and the explicit `minimax-m3`); other members of the family follow the actual catalogue of the selected exit. OpenCode's one-click config used to write empty model entries, so it fell back to its own 200k default; the gateway's catalogue `context_window` / `max_output` now go into `limit.context` / `limit.output`, while entries without specs stay empty objects. Regression coverage added.
 - **流式回复在真实静默期发送 SSE 心跳**（#578）：上游思考期间可能长时间一个字节都不发，而客户端会把静默误判为断流；只在每次阻塞读之前检查心跳，恰好无法覆盖它。Chat、Responses 与 Anthropic Messages 三条流式路径现在共用后台 `SSEHeartbeat`：每 15 秒无写入就发送合法的 `: keepalive` 注释帧，与业务帧共用锁，保证不会截断 JSON；响应正常时不会多插帧，流结束后线程立即停止。新增 `tests/_test_stream_keepalive.py`（9 项，含读线程阻塞期间仍收到心跳与并发写入完整性），并复跑流式 id、usage 帧、断流错误帧与重试套件。 / Keep SSE streams alive through real upstream silence (#578): while the model is thinking the upstream may send nothing for longer than the client's idle window, and checking a heartbeat only before the next blocking read cannot cover that gap. Chat, Responses and Anthropic Messages now share a background `SSEHeartbeat`: after 15 idle seconds it writes a valid `: keepalive` comment frame under the same lock as application writes, so JSON frames cannot be split; responsive streams gain no extra frames and the thread stops as soon as the stream ends. Added `tests/_test_stream_keepalive.py` (9 checks, including heartbeat delivery while the reader is blocked and write integrity under contention), and re-ran the stream id, usage-frame, abort-frame and retry suites.

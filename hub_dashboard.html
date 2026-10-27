@@ -1,0 +1,2431 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WorkBuddy × Qoder × ZCode 中枢</title>
+<style>
+/* ============================================================
+   主题令牌：浅色为默认，深色走 prefers-color-scheme。
+   不引外链字体/图标，全部用系统字体与 CSS 图形，保证离线可用。
+   ============================================================ */
+:root{
+  --bg:#f5f7fa; --panel:#ffffff; --panel2:#f1f5f9; --panel3:#e9eef5;
+  --line:#e3e8ef; --line-strong:#cfd8e3;
+  --fg:#0f172a; --dim:#64748b; --dim2:#94a3b8;
+  --accent:#2563eb; --accent-fg:#ffffff; --accent-soft:rgba(37,99,235,.10);
+  --ok:#15803d; --ok-bg:rgba(34,197,94,.14); --ok-line:rgba(34,197,94,.35);
+  --warn:#b45309; --warn-bg:rgba(245,158,11,.16); --warn-line:rgba(245,158,11,.38);
+  --bad:#b91c1c; --bad-bg:rgba(239,68,68,.13); --bad-line:rgba(239,68,68,.35);
+  --off:#64748b; --off-bg:#eef2f7; --off-line:#dbe3ec;
+  --qoder:#7c3aed; --qoder-bg:rgba(124,58,237,.10); --qoder-line:rgba(124,58,237,.28);
+  --zcode:#0e9f9f; --zcode-bg:rgba(14,159,159,.10); --zcode-line:rgba(14,159,159,.28);
+  --shadow:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.05);
+  --header-bg:rgba(255,255,255,.93);
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0b1018; --panel:#131a24; --panel2:#1b2431; --panel3:#222d3b;
+    --line:#26313f; --line-strong:#35424f;
+    --fg:#e8eef6; --dim:#94a3b8; --dim2:#64748b;
+    --accent:#60a5fa; --accent-fg:#0b1018; --accent-soft:rgba(96,165,250,.16);
+    --ok:#4ade80; --ok-bg:rgba(74,222,128,.14); --ok-line:rgba(74,222,128,.32);
+    --warn:#fbbf24; --warn-bg:rgba(251,191,36,.14); --warn-line:rgba(251,191,36,.30);
+    --bad:#f87171; --bad-bg:rgba(248,113,113,.14); --bad-line:rgba(248,113,113,.32);
+    --off:#94a3b8; --off-bg:rgba(148,163,184,.14); --off-line:rgba(148,163,184,.28);
+    --qoder:#c4b5fd; --qoder-bg:rgba(196,181,253,.14); --qoder-line:rgba(196,181,253,.30);
+    --zcode:#5eead4; --zcode-bg:rgba(94,234,212,.14); --zcode-line:rgba(94,234,212,.30);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 1px 3px rgba(0,0,0,.3);
+    --header-bg:rgba(11,16,24,.90);
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);
+  font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.mono{font-family:var(--mono);font-size:12px}
+.dim{color:var(--dim)}
+.muted{color:var(--dim2)}
+.hidden{display:none !important}
+.grow{flex:1 1 auto}
+.ta-r{text-align:right}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- 按钮 / 输入 ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:9px;
+  border:1px solid var(--accent);background:var(--accent);color:var(--accent-fg);
+  font:inherit;font-size:13px;font-weight:600;line-height:1.2;cursor:pointer;white-space:nowrap;
+  transition:filter .12s ease,background .12s ease}
+.btn:hover{filter:brightness(1.06);text-decoration:none}
+.btn:active{filter:brightness(.94)}
+.btn[disabled]{opacity:.55;cursor:not-allowed;filter:none}
+.btn.ghost{background:transparent;border-color:var(--line-strong);color:var(--fg)}
+.btn.ghost:hover{background:var(--panel2);filter:none}
+.btn.sm{padding:5px 11px;font-size:12px;border-radius:8px}
+.btn.danger{color:var(--bad);border-color:var(--bad-line)}
+.btn.danger:hover{background:var(--bad-bg)}
+.btn.block{width:100%}
+.btn.is-disabled{opacity:.5;cursor:not-allowed;pointer-events:none;background:transparent;
+  border-color:var(--line);color:var(--dim)}
+.input{padding:7px 11px;border-radius:9px;border:1px solid var(--line-strong);background:var(--panel);
+  color:var(--fg);font:inherit;font-size:13px;min-width:0;width:100%}
+.input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.input.num{width:96px;text-align:right;font-variant-numeric:tabular-nums}
+select.input{cursor:pointer}
+.field{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--dim)}
+.field>span{white-space:nowrap}
+.field select.input,.field .input{width:auto;min-width:120px}
+.chk{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--dim);cursor:pointer}
+.chk input{accent-color:var(--accent);width:15px;height:15px;margin:0;cursor:pointer}
+
+/* ---------- 顶栏 ---------- */
+.topbar{
+  position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;
+  padding:11px clamp(12px,2vw,26px);border-bottom:1px solid var(--line);
+  background:var(--header-bg);backdrop-filter:blur(10px);
+}
+.brand{display:flex;align-items:center;gap:9px;min-width:0;flex:0 1 auto}
+.brand .logo{
+  width:26px;height:26px;flex:0 0 auto;border-radius:8px;display:grid;place-items:center;
+  background:linear-gradient(140deg,var(--accent),var(--qoder));color:#fff;font-size:14px;font-weight:700;
+}
+.brand h1{font-size:16px;font-weight:700;letter-spacing:-.2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ver{flex:0 0 auto;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;
+  background:var(--accent-soft);color:var(--accent);font-variant-numeric:tabular-nums}
+.topmeta{display:flex;gap:6px 16px;color:var(--dim);font-size:12px;flex-wrap:wrap;margin-left:auto;
+  font-variant-numeric:tabular-nums}
+.topmeta b{color:var(--fg);font-weight:600}
+.topactions{display:flex;gap:8px;flex:0 0 auto}
+
+/* ---------- 错误横幅 ---------- */
+.banner{display:flex;align-items:flex-start;gap:10px;margin:0;padding:9px clamp(12px,2vw,26px);
+  background:var(--bad-bg);color:var(--bad);border-bottom:1px solid var(--bad-line);font-size:13px}
+.banner .banner-text{flex:1;min-width:0;word-break:break-word}
+.banner .banner-x{flex:0 0 auto;background:transparent;border:0;color:var(--bad);cursor:pointer;
+  font-size:18px;line-height:1;padding:0 2px;opacity:.8}
+.banner .banner-x:hover{opacity:1}
+
+/* ---------- 页签 ---------- */
+.tabs{display:flex;gap:4px;padding:8px clamp(12px,2vw,26px) 0;border-bottom:1px solid var(--line);
+  background:var(--panel);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:8px 14px 9px;border:0;border-bottom:2px solid transparent;background:transparent;
+  color:var(--dim);font:inherit;font-size:13px;font-weight:600;cursor:pointer;
+  border-radius:8px 8px 0 0;white-space:nowrap}
+.tab:hover{color:var(--fg);background:var(--panel2)}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);background:var(--accent-soft)}
+
+/* ---------- 布局 ---------- */
+main{padding:16px clamp(12px,2vw,26px) 64px;max-width:1680px;margin:0 auto}
+.tab-panel{display:block}
+.sec-title{display:flex;align-items:center;gap:8px;margin:20px 0 10px;font-size:12px;font-weight:700;
+  color:var(--dim);text-transform:uppercase;letter-spacing:.6px}
+.sec-title .count{font-size:11px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--dim);
+  background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+  box-shadow:var(--shadow);margin-bottom:16px;min-width:0}
+.card-h{font-size:13px;font-weight:700;color:var(--fg);margin:0 0 10px}
+.card-k{font-size:12px;color:var(--dim);font-weight:600}
+.hint{color:var(--dim);font-size:12px;margin:0 0 10px}
+.empty{padding:26px 16px;text-align:center;color:var(--dim);font-size:13px;background:var(--panel);
+  border:1px dashed var(--line-strong);border-radius:12px}
+.empty a{font-weight:600}
+.empty .empty-links{display:flex;gap:8px 18px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+
+/* ---------- 网关卡片 ---------- */
+.gateway{padding:16px 18px}
+.gw-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.gw-url{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--fg);margin-top:4px;word-break:break-all}
+.gw-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:14px 0 4px}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;min-width:0}
+.stat-k{font-size:11px;color:var(--dim);margin-bottom:3px}
+.stat-v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.curl-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:16px 0 6px}
+.curl{margin:0;padding:11px 13px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);
+  color:var(--fg);font-family:var(--mono);font-size:12px;line-height:1.65;white-space:pre-wrap;
+  word-break:break-all;overflow-x:auto}
+
+/* ---------- 上游卡片 ---------- */
+.providers{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:14px}
+.pcard{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--line-strong);
+  border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:10px;min-width:0}
+.pcard[data-state="running"]{border-left-color:var(--ok)}
+.pcard[data-state="starting"]{border-left-color:var(--warn)}
+.pcard[data-state="failed"]{border-left-color:var(--bad)}
+.pcard-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.pcard-title{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:700;min-width:0}
+.pcard-title .port{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--dim)}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px 10px;margin:0}
+.kv div{min-width:0}
+.kv dt{font-size:11px;color:var(--dim);margin:0 0 1px}
+.kv dd{margin:0;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.pcard-foot{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px}
+.perr{margin:0;padding:7px 10px;border-radius:8px;background:var(--bad-bg);border:1px solid var(--bad-line);
+  color:var(--bad);font-size:12px;line-height:1.5;word-break:break-word}
+
+/* ---------- 徽章 ---------- */
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;
+  background:var(--panel2);border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.badge.ok{color:var(--ok);background:var(--ok-bg);border-color:var(--ok-line)}
+.badge.warn{color:var(--warn);background:var(--warn-bg);border-color:var(--warn-line)}
+.badge.bad{color:var(--bad);background:var(--bad-bg);border-color:var(--bad-line)}
+.badge.off{color:var(--off);background:var(--off-bg);border-color:var(--off-line)}
+.badge.pv.pv-wb{color:var(--accent);background:var(--accent-soft);border-color:rgba(37,99,235,.28)}
+.badge.pv.pv-qoder{color:var(--qoder);background:var(--qoder-bg);border-color:var(--qoder-line)}
+.badge.pv.pv-zcode{color:var(--zcode);background:var(--zcode-bg);border-color:var(--zcode-line)}
+.badge.pv.pv-other{color:var(--dim);background:var(--panel2);border-color:var(--line)}
+
+/* ---------- 工具条 / 表 ---------- */
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.toolbar .input{width:auto;min-width:200px;flex:1 1 200px;max-width:340px}
+.seg{display:inline-flex;gap:2px;padding:2px;border-radius:9px;background:var(--panel2);
+  border:1px solid var(--line);flex-wrap:wrap}
+.seg-btn{padding:5px 12px;border:0;border-radius:7px;background:transparent;color:var(--dim);
+  font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.seg-btn:hover{color:var(--fg)}
+.seg-btn.on{background:var(--panel);color:var(--accent);box-shadow:var(--shadow)}
+.table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);
+  border-radius:12px;background:var(--panel)}
+/* 账号表多了一列「操作」，min-width 相应放宽：窄屏仍然是横向滚动，
+   不去挤压「备注」这类本来就靠 ellipsis 收窄的列 */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:780px}
+.tbl th,.tbl td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl th{font-size:11px;font-weight:700;color:var(--dim);background:var(--panel2);white-space:nowrap;
+  text-transform:uppercase;letter-spacing:.4px}
+.tbl tbody tr:last-child td{border-bottom:0}
+.tbl tbody tr:hover{background:var(--panel2)}
+.tbl td.mono{font-variant-numeric:tabular-nums}
+.tbl .uid{max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbl .note{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--dim)}
+.tbl .num{font-variant-numeric:tabular-nums;text-align:right}
+.tbl td.muted{text-align:center;color:var(--dim2);padding:22px 12px}
+/* 操作列：两个按钮排一行，窄屏也不换行（整表横向滚动兜底） */
+.tbl td.acts{white-space:nowrap}
+.tbl td.acts .btn{margin-right:6px}
+.tbl td.acts .btn:last-child{margin-right:0}
+
+/* ---------- 设置 ---------- */
+.formrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.formrow .input{width:auto;min-width:180px;flex:1 1 180px;max-width:280px}
+.newkey{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;
+  padding-top:12px;border-top:1px dashed var(--line-strong)}
+.newkey .input{width:auto;min-width:150px;flex:1 1 150px;max-width:260px}
+.pvrow{display:flex;gap:10px 18px;align-items:center;flex-wrap:wrap;padding:10px 0;
+  border-bottom:1px dashed var(--line)}
+.pvrow:last-child{border-bottom:0}
+.pvrow-name{font-weight:600;min-width:150px}
+.pvrow-name .mono{color:var(--dim);font-weight:400;margin-left:6px}
+
+/* ---------- 日志 ---------- */
+.logs{margin:0;padding:12px 14px;border-radius:12px;border:1px solid var(--line);
+  background:var(--panel);color:var(--fg);font-family:var(--mono);font-size:12px;line-height:1.65;
+  white-space:pre-wrap;word-break:break-word;max-height:62vh;min-height:180px;overflow:auto}
+
+/* ---------- 登录遮罩 ---------- */
+.overlay{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:rgba(15,23,42,.55);backdrop-filter:blur(3px)}
+@media (prefers-color-scheme: dark){.overlay{background:rgba(3,7,14,.72)}}
+.login-card{width:100%;max-width:360px;background:var(--panel);border:1px solid var(--line);
+  border-radius:16px;padding:22px 22px 20px;box-shadow:0 18px 48px rgba(15,23,42,.28);
+  display:flex;flex-direction:column;gap:12px}
+.login-card h2{font-size:17px;font-weight:700;letter-spacing:-.2px}
+.login-sub{margin:0;color:var(--dim);font-size:13px}
+.login-card .input.lg{padding:10px 12px;font-size:15px}
+.login-err{margin:0;padding:8px 10px;border-radius:8px;font-size:12px;background:var(--bad-bg);
+  border:1px solid var(--bad-line);color:var(--bad)}
+.login-hint{margin:0;padding:8px 10px;border-radius:8px;font-size:12px;background:var(--warn-bg);
+  border:1px solid var(--warn-line);color:var(--warn)}
+
+/* ---------- 添加账号模态框 ----------
+   直接复用 .overlay 遮罩与 .login-card 的卡片外观，只把宽度/滚动放宽，
+   这样深色模式、圆角、阴影都不用再写一遍。 */
+.modal-card{max-width:560px;max-height:calc(100vh - 40px);overflow:auto;gap:14px}
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.modal-x{flex:0 0 auto;background:transparent;border:0;color:var(--dim);cursor:pointer;
+  font-size:22px;line-height:1;padding:0 2px}
+.modal-x:hover{color:var(--fg)}
+.prov-pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+/* 三个步骤各自竖排；.hidden 的 display:none!important 仍然优先，切状态不会打架 */
+#acctStepPick,#acctStepWait,#acctStepResult{display:flex;flex-direction:column;gap:10px}
+.prov-pick-btn{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:10px;
+  border:1px solid var(--line-strong);background:var(--panel2);color:var(--fg);font:inherit;
+  font-size:13px;font-weight:700;text-align:left;cursor:pointer}
+.prov-pick-btn span{font-size:11px;font-weight:500;color:var(--dim)}
+.prov-pick-btn:hover{border-color:var(--accent)}
+.prov-pick-btn.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.modal-sec{display:flex;flex-direction:column;gap:10px;padding-top:12px;
+  border-top:1px dashed var(--line-strong)}
+.modal-sec-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.modal-sec textarea.input{min-height:96px;resize:vertical;font-family:var(--mono);font-size:12px;
+  line-height:1.6}
+.auth-url{display:block;padding:9px 11px;border-radius:9px;background:var(--panel2);
+  border:1px solid var(--line);word-break:break-all;font-size:12px;line-height:1.6}
+.wait-line{margin:0;padding:8px 10px;border-radius:8px;font-size:12px;
+  background:var(--accent-soft);border:1px solid var(--line);color:var(--accent)}
+.modal-msg{margin:0;padding:10px 12px;border-radius:9px;font-size:13px;white-space:pre-wrap;
+  word-break:break-word;background:var(--panel2);border:1px solid var(--line);color:var(--fg)}
+.modal-msg.ok{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok)}
+.modal-msg.bad{background:var(--bad-bg);border-color:var(--bad-line);color:var(--bad)}
+
+/* ---------- toast ---------- */
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:120;padding:9px 16px;
+  border-radius:999px;font-size:13px;font-weight:600;background:var(--fg);color:var(--panel);
+  box-shadow:0 8px 24px rgba(15,23,42,.28);max-width:calc(100vw - 32px);text-align:center}
+.toast.bad{background:var(--bad);color:#fff}
+
+/* ---------- 响应式：320px 起可用 ---------- */
+@media (max-width: 720px){
+  .brand h1{font-size:14px}
+  .topmeta{order:3;width:100%;margin-left:0;gap:4px 14px}
+  .topactions{margin-left:auto}
+  .btn{padding:6px 11px;font-size:12px}
+  .card{padding:13px 14px;border-radius:12px}
+  .gw-stats{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
+  .stat-v{font-size:15px}
+  .toolbar .input{max-width:none}
+  .formrow .input{max-width:none}
+  .newkey .input{max-width:none}
+  .logs{max-height:52vh}
+}
+@media (max-width: 420px){
+  .topbar{gap:8px;padding:9px 12px}
+  .brand .logo{display:none}
+  .tabs{padding:6px 12px 0}
+  .tab{padding:7px 10px 8px;font-size:12px}
+  main{padding:12px 10px 56px}
+  .sec-title{margin:16px 0 8px}
+  .kv{grid-template-columns:repeat(auto-fit,minmax(76px,1fr))}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important;animation:none !important}
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">◎</span>
+    <h1>WorkBuddy × Qoder × ZCode 中枢</h1>
+    <span class="ver" id="hubVersion">—</span>
+  </div>
+  <div class="topmeta">
+    <span>运行 <b id="uptime">—</b></span>
+    <span><b id="clock">—</b></span>
+  </div>
+  <div class="topactions">
+    <button class="btn ghost" id="btnRefresh" type="button">刷新</button>
+    <button class="btn ghost" id="btnLogout" type="button">退出登录</button>
+  </div>
+</header>
+
+<div class="banner hidden" id="banner" role="alert">
+  <span class="banner-text" id="bannerText"></span>
+  <button class="banner-x" id="bannerClose" type="button" aria-label="关闭提示">×</button>
+</div>
+
+<nav class="tabs" id="tabs" aria-label="面板分区">
+  <button class="tab on" type="button" data-tab="overview">总览</button>
+  <button class="tab" type="button" data-tab="models">模型与路由</button>
+  <button class="tab" type="button" data-tab="settings">设置</button>
+  <button class="tab" type="button" data-tab="logs">运行日志</button>
+</nav>
+
+<main>
+  <!-- ============ 总览 ============ -->
+  <section class="tab-panel" id="panel-overview">
+    <div class="card gateway">
+      <div class="gw-head">
+        <div style="min-width:0">
+          <div class="card-k">合并网关地址（OpenAI 兼容）</div>
+          <div class="gw-url" id="gwBaseUrl">—</div>
+        </div>
+        <button class="btn ghost sm" id="btnCopyUrl" type="button">复制地址</button>
+      </div>
+      <div class="gw-stats">
+        <div class="stat"><div class="stat-k">模型总数</div><div class="stat-v" id="gwModels">—</div></div>
+        <div class="stat"><div class="stat-k">鉴权</div><div class="stat-v" id="gwAuth">—</div></div>
+        <div class="stat"><div class="stat-k">网关 Key</div><div class="stat-v" id="gwKeys">—</div></div>
+        <div class="stat"><div class="stat-k">监听范围</div><div class="stat-v" id="gwMode">—</div></div>
+      </div>
+      <div class="curl-head">
+        <span class="card-k">调用示例（Key 换成「设置」里配置的网关 Key）</span>
+        <button class="btn ghost sm" id="btnCopyCurl" type="button">复制 curl</button>
+      </div>
+      <pre class="curl" id="curlBox">—</pre>
+    </div>
+
+    <div class="card" id="egressCard" style="margin-top:14px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div style="min-width:0">
+          <div class="card-k">当前出口（/v1 流量走这里）</div>
+          <div class="hint" id="egressState" style="margin:4px 0 0">—</div>
+        </div>
+        <span class="grow"></span>
+        <div class="seg" id="egressProviders"></div>
+        <div class="seg hidden" id="egressRealms"></div>
+      </div>
+      <p class="hint" id="egressHint" style="margin:8px 0 0">
+        「自动」= 按模型清单派发；选定某一家后，<b>多家都有的模型</b>走它，
+        <b>只属于别家的模型仍然走它自己的上游</b>（不会因为出口选错而失败）。
+        带 <code>wb/</code>、<code>qoder/</code>、<code>zcode/</code> 前缀的请求永远按前缀走。
+        WorkBuddy / Qoder 还可以单独切国际版 / 国内版。
+      </p>
+    </div>
+
+    <h2 class="sec-title">上游</h2>
+    <div class="providers" id="providersBox"><div class="empty">加载中…</div></div>
+
+    <h2 class="sec-title">账号总表 <span class="count" id="acctCount"></span></h2>
+    <div class="toolbar">
+      <div class="seg" id="acctFilter"></div>
+      <input class="input" id="acctSearch" type="search" placeholder="搜索昵称 / UID / 备注" autocomplete="off">
+      <span class="grow"></span>
+      <button class="btn" id="btnAddAccount" type="button">+ 添加账号</button>
+    </div>
+    <div class="table-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>上游</th><th>昵称</th><th>UID</th><th>区域</th><th>状态</th><th>权重</th><th>备注</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="acctBody"><tr><td colspan="8" class="muted">加载中…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="empty hidden" id="acctEmpty"></div>
+  </section>
+
+  <!-- ============ 模型与路由 ============ -->
+  <section class="tab-panel hidden" id="panel-models">
+    <div class="toolbar">
+      <label class="field"><span>默认上游</span>
+        <select class="input" id="defaultProvider"><option value="">—</option></select>
+      </label>
+      <button class="btn" id="btnSaveDefault" type="button">保存</button>
+      <span class="grow"></span>
+      <span class="hint" id="modelsUpdated" style="margin:0"></span>
+      <button class="btn ghost" id="btnRefreshModels" type="button">刷新</button>
+      <input class="input" id="modelSearch" type="search" placeholder="搜索模型名 / 真实模型名" autocomplete="off">
+    </div>
+    <p class="hint" id="modelsHint">清单来自三个上游当前的模型目录（最多 60 秒缓存；点「刷新」立即重拉）。同名模型跟随默认上游/当前出口；带 <code>wb/</code>、<code>qoder/</code> 或 <code>zcode/</code> 前缀可强制指定。</p>
+    <div class="table-wrap">
+      <table class="tbl">
+        <thead>
+          <tr><th>模型名（客户端填这个）</th><th>上游</th><th>区域</th><th>真实模型名</th></tr>
+        </thead>
+        <tbody id="modelBody"><tr><td colspan="4" class="muted">加载中…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="empty hidden" id="modelEmpty"></div>
+  </section>
+
+  <!-- ============ 设置 ============ -->
+  <section class="tab-panel hidden" id="panel-settings">
+    <div class="card">
+      <h2 class="card-h">网关 Key</h2>
+      <p class="hint" id="keysHint">密钥只显示脱敏值。已有 Key 的密钥留空表示不改。</p>
+      <div class="table-wrap">
+        <table class="tbl">
+          <thead>
+            <tr><th>名称</th><th>密钥</th><th>启用</th><th>创建时间</th><th class="ta-r">操作</th></tr>
+          </thead>
+          <tbody id="keyBody"><tr><td colspan="5" class="muted">加载中…</td></tr></tbody>
+        </table>
+      </div>
+      <div class="newkey">
+        <input class="input" id="newKeyName" placeholder="名称，如「默认」" autocomplete="off">
+        <input class="input" id="newKeyValue" type="password" placeholder="密钥（新 Key 必填）" autocomplete="new-password">
+        <label class="chk"><input type="checkbox" id="newKeyEnabled" checked> 启用</label>
+        <button class="btn" id="btnAddKey" type="button">新增 Key</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="card-h">面板密码</h2>
+      <p class="hint" id="pwHint">修改后下次登录用新密码。</p>
+      <div class="formrow">
+        <input class="input" id="pwNew" type="password" placeholder="新密码" autocomplete="new-password">
+        <input class="input" id="pwConfirm" type="password" placeholder="再输一次" autocomplete="new-password">
+        <button class="btn" id="btnSavePw" type="button">修改密码</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="card-h">上游开关 / 端口</h2>
+      <p class="hint">端口或启停改动需要重启对应上游才生效（服务端通常会顺手重启）。</p>
+      <div id="pvSettings"><div class="empty">加载中…</div></div>
+      <div class="formrow">
+        <button class="btn" id="btnSaveProviders" type="button">保存上游设置</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 运行日志 ============ -->
+  <section class="tab-panel hidden" id="panel-logs">
+    <div class="toolbar">
+      <label class="field"><span>上游</span>
+        <select class="input" id="logProvider">
+          <option value="wb">WorkBuddy</option>
+          <option value="qoder">Qoder</option>
+          <option value="zcode">ZCode</option>
+        </select>
+      </label>
+      <label class="field"><span>行数</span>
+        <select class="input" id="logTail">
+          <option value="200" selected>200</option>
+          <option value="500">500</option>
+          <option value="2000">2000</option>
+        </select>
+      </label>
+      <button class="btn" id="btnLoadLogs" type="button">刷新</button>
+      <span class="grow"></span>
+      <span class="hint" id="logMeta" style="margin:0"></span>
+    </div>
+    <pre class="logs" id="logBox">（尚未加载）</pre>
+  </section>
+</main>
+
+<!-- 登录遮罩：默认隐藏，由 /panel/status 判定后再显示，避免已登录用户看到闪屏 -->
+<div class="overlay hidden" id="loginOverlay">
+  <form class="login-card" id="loginForm" autocomplete="on">
+    <h2>WorkBuddy × Qoder × ZCode 中枢</h2>
+    <p class="login-sub">请输入面板密码以继续</p>
+    <input class="input lg" id="loginPw" type="password" placeholder="面板密码"
+           autocomplete="current-password" aria-label="面板密码">
+    <p class="login-err hidden" id="loginErr"></p>
+    <p class="login-hint hidden" id="loginHint"></p>
+    <button class="btn block" id="btnLogin" type="submit">登录</button>
+  </form>
+</div>
+
+<!-- 添加账号模态框：复用 .overlay 遮罩；三个状态（选上游 / 等待授权 / 结果）
+     由 JS 切 hidden，Esc、点遮罩、× 都能关，关闭时会取消未完成的登录会话 -->
+<div class="overlay hidden" id="acctModal">
+  <div class="login-card modal-card" role="dialog" aria-modal="true" aria-labelledby="acctModalTitle">
+    <div class="modal-head">
+      <h2 id="acctModalTitle">添加账号</h2>
+      <button class="modal-x" id="acctModalClose" type="button" aria-label="关闭">×</button>
+    </div>
+
+    <!-- 状态一：选上游 -->
+    <div id="acctStepPick">
+      <p class="hint" style="margin:0">先选上游。同一个上游可以挂多个账号，加完一个可以接着加下一个。</p>
+      <div class="prov-pick" id="acctProvPick">
+        <button class="prov-pick-btn" type="button" data-prov="wb" aria-pressed="false">WorkBuddy<span>浏览器授权登录</span></button>
+        <button class="prov-pick-btn" type="button" data-prov="qoder" aria-pressed="false">Qoder<span>浏览器授权登录</span></button>
+        <button class="prov-pick-btn" type="button" data-prov="zcode" aria-pressed="false">ZCode<span>授权登录 / 粘贴凭证</span></button>
+      </div>
+
+      <!-- wb / qoder：选区域 → 开始登录 -->
+      <div class="modal-sec hidden" id="acctOauthPane">
+        <div class="modal-sec-row">
+          <label class="field"><span>区域</span>
+            <select class="input" id="acctRealm">
+              <option value="intl">国际版（intl）</option>
+              <option value="cn">国内版（cn）</option>
+            </select>
+          </label>
+          <button class="btn" id="btnStartLogin" type="button">开始登录</button>
+        </div>
+        <p class="hint" style="margin:0">点「开始登录」后到浏览器里完成授权，本窗口会自动收下账号。</p>
+      </div>
+
+      <!-- zcode：授权登录 / 粘贴凭证两个入口 -->
+      <div class="modal-sec hidden" id="acctZcodePane">
+        <div class="modal-sec-row">
+          <div style="min-width:0">
+            <div class="card-k">用 Z.AI 授权登录</div>
+            <div class="hint" style="margin:2px 0 0">在浏览器里完成 Z.AI 授权，凭证自动写回中枢。需要本机能访问 z.ai；不通时用下面的「粘贴凭证」。</div>
+          </div>
+          <button class="btn" id="btnZcodeOauth" type="button">开始授权</button>
+        </div>
+        <div class="modal-sec-row" style="align-items:stretch;flex-direction:column">
+          <div class="card-k">粘贴凭证</div>
+          <p class="hint" style="margin:0">每行一个 JWT 或 API Key；需要备注时写成「名称 + Tab + 凭证」。</p>
+          <textarea class="input" id="acctImportRows" rows="5" spellcheck="false"
+                    placeholder="账号A&#9;eyJhbGciOiJIUzI1NiIs...&#10;eyJhbGciOiJIUzI1NiIs..."></textarea>
+          <div class="modal-sec-row">
+            <span class="hint" id="acctImportMeta" style="margin:0">空行会被忽略，凭证里的空格原样保留。</span>
+            <button class="btn" id="btnImportRows" type="button">导入</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 状态二：等待授权 -->
+    <div id="acctStepWait" class="hidden">
+      <p class="hint" style="margin:0">在浏览器里打开下面的链接完成授权；本窗口每 2 秒自动检查一次。</p>
+      <a class="auth-url" id="acctAuthUrl" href="" target="_blank" rel="noopener noreferrer">—</a>
+      <div class="modal-sec-row">
+        <button class="btn" id="btnOpenAuth" type="button">在浏览器打开</button>
+        <button class="btn ghost" id="btnCancelLogin" type="button">取消登录</button>
+      </div>
+      <p class="wait-line" id="acctWaitLine">等待授权…</p>
+      <p class="hint" id="acctWaitMeta" style="margin:0"></p>
+    </div>
+
+    <!-- 状态三：结果（成功 / 失败 / 导入回执） -->
+    <div id="acctStepResult" class="hidden">
+      <p class="modal-msg" id="acctResultMsg"></p>
+      <div class="modal-sec-row">
+        <button class="btn ghost hidden" id="btnResultAgain" type="button">重新开始</button>
+        <button class="btn" id="btnResultClose" type="button">完成</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ============================================================
+     常量与状态
+     ============================================================ */
+  var TOKEN_KEY = 'hub-panel-token';
+  var PROVIDER_ACTION = '/api/hub/providers/';   // + <id>/restart|start|stop
+  var FALLBACK_PROVIDERS = [
+    {id:'wb', label:'WorkBuddy', mount:'/wb/'},
+    {id:'qoder', label:'Qoder', mount:'/qoder/'},
+    {id:'zcode', label:'ZCode', mount:'/zcode/'}
+  ];
+  var REALM_TEXT = {intl:'国际版', cn:'国内版'};
+  var STATE_META = {
+    running:{cls:'ok',   text:'运行中'},
+    starting:{cls:'warn',text:'启动中'},
+    stopped:{cls:'off',  text:'已停止'},
+    failed:{cls:'bad',  text:'失败'},
+    disabled:{cls:'off', text:'已禁用'}
+  };
+
+  // 账号管理接口：一律写绝对路径，页面挂在子路径下也不会拼错。
+  var ACCOUNTS_LOGIN_START  = '/api/hub/accounts/login/start';
+  var ACCOUNTS_LOGIN_POLL   = '/api/hub/accounts/login/poll';
+  var ACCOUNTS_LOGIN_CANCEL = '/api/hub/accounts/login/cancel';
+  var ACCOUNTS_SET          = '/api/hub/accounts/set';
+  var ACCOUNTS_DELETE       = '/api/hub/accounts/delete';
+  var ACCOUNTS_IMPORT       = '/api/hub/accounts/import';
+  var LOGIN_POLL_MS = 2000;              // 契约要求每 2 秒轮询一次
+  var LOGIN_MAX_MS  = 5 * 60 * 1000;     // 最多等 5 分钟
+  var KNOWN_PROVIDERS = ['wb', 'qoder', 'zcode'];   // 筛选里固定给出的三个上游
+
+  var state = {
+    auth:false,
+    passwordDefault:false,
+    overview:null,
+    models:null,
+    settings:null,
+    keys:null,
+    logs:null,
+    loaded:{overview:false, models:false, settings:false, keys:false, logs:false},
+    busy:{overview:false, models:false, settings:false, keys:false, logs:false},
+    uptime:null,            // {base, at}：服务端给的是快照，本地按秒补齐
+    tab:'overview',
+    acctFilter:'all',
+    acctQuery:'',
+    acctBusy:{},        // provider|uid → true：正在提交的行，重渲染后按钮仍保持禁用
+    acctProv:'',        // 模态框里选中的上游
+    login:null,         // 进行中的授权会话 {provider, realm, sid, deadline, timer}
+    modelQuery:'',
+    curlText:'',
+    bannerSrc:''
+  };
+
+  /* ============================================================
+     基础工具
+     ============================================================ */
+
+  // 所有拼进 innerHTML 的接口字符串都必须过这里；属性值同样适用（" 已转义）。
+  function esc(v){
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){
+      if (c === '&') return '&amp;';
+      if (c === '<') return '&lt;';
+      if (c === '>') return '&gt;';
+      if (c === '"') return '&quot;';
+      return '&#39;';
+    });
+  }
+
+  function $(id){ return document.getElementById(id); }
+
+  // 绑事件的小壳子：id 写错不该让整个面板挂掉，所以查不到就静默跳过
+  function on(id, ev, fn){
+    var el = $(id);
+    if (el) el.addEventListener(ev, fn);
+    return el;
+  }
+
+  function setText(id, text){
+    var el = $(id);
+    if (el) el.textContent = text == null ? '' : String(text);
+  }
+
+  function pad2(n){ return n < 10 ? '0' + n : String(n); }
+
+  function fmtInt(v){
+    var n = Math.round(Number(v) || 0);
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  // token 量级：1.2k / 3.4M / 1.1B（不四舍五入到失去量级感）
+  function fmtTokens(v){
+    var n = Number(v) || 0;
+    var abs = Math.abs(n);
+    function trim(x){ return (x >= 100 ? x.toFixed(0) : x.toFixed(1)).replace(/\.0$/, ''); }
+    if (abs >= 1e9) return trim(n / 1e9) + 'B';
+    if (abs >= 1e6) return trim(n / 1e6) + 'M';
+    if (abs >= 1e3) return trim(n / 1e3) + 'k';
+    return String(Math.round(n));
+  }
+
+  function fmtDuration(sec){
+    var s = Math.max(0, Math.floor(Number(sec) || 0));
+    var d = Math.floor(s / 86400);
+    var h = Math.floor((s % 86400) / 3600);
+    var m = Math.floor((s % 3600) / 60);
+    var ss = s % 60;
+    if (d > 0) return d + ' 天 ' + h + ' 小时';
+    if (h > 0) return h + ' 小时 ' + m + ' 分';
+    if (m > 0) return m + ' 分 ' + ss + ' 秒';
+    return ss + ' 秒';
+  }
+
+  // 服务端时间形如 "2026-10-27 14:00:00"（也可能是 ISO）；手动拆字段，
+  // 避免 Safari 对 "YYYY-MM-DD HH:MM" 解析失败、也避免时区偏移。
+  function parseServerTime(s){
+    if (!s) return null;
+    var m = String(s).match(/^(\d{4})-(\d{1,2})-(\d{1,2})[T ](\d{1,2}):(\d{2})(?::(\d{2}))?/);
+    if (!m){
+      var d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], m[6] ? +m[6] : 0);
+  }
+
+  function fmtTime(d, withSec){
+    if (!d) return '—';
+    return d.getFullYear() + '/' + pad2(d.getMonth() + 1) + '/' + pad2(d.getDate()) +
+      ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) +
+      (withSec ? ':' + pad2(d.getSeconds()) : '');
+  }
+
+  function fmtServerTime(s){
+    var d = parseServerTime(s);
+    return d ? fmtTime(d) : (s ? String(s) : '—');
+  }
+
+  function realmText(realm){
+    if (!realm) return '—';
+    return REALM_TEXT[realm] || String(realm);
+  }
+
+  function providerLabel(id){
+    var key = String(id == null ? '' : id);
+    if (state.overview && state.overview.providers){
+      for (var i = 0; i < state.overview.providers.length; i++){
+        var p = state.overview.providers[i];
+        if (p && String(p.id) === key && p.label) return String(p.label);
+      }
+    }
+    for (var j = 0; j < FALLBACK_PROVIDERS.length; j++){
+      if (FALLBACK_PROVIDERS[j].id === key) return FALLBACK_PROVIDERS[j].label;
+    }
+    return key || '—';
+  }
+
+  // 概览没拿到时用契约里的两个固定上游兜底，保证下拉/筛选不是空的。
+  function providerList(){
+    var out = [];
+    var src = (state.overview && state.overview.providers) || [];
+    for (var i = 0; i < src.length; i++){
+      var p = src[i] || {};
+      if (!p.id) continue;
+      out.push({id:String(p.id), label:providerLabel(p.id), mount:p.mount || ''});
+    }
+    if (!out.length) return FALLBACK_PROVIDERS.slice();
+    return out;
+  }
+
+  function pvBadge(id){
+    var key = String(id == null ? '' : id);
+    var cls = (key === 'wb' || key === 'qoder' || key === 'zcode') ? 'pv-' + key : 'pv-other';
+    return '<span class="badge pv ' + cls + '">' + esc(providerLabel(key)) + '</span>';
+  }
+
+  // 只接受站内绝对路径，挡住 javascript: 之类被拼进 href 的可能
+  function safeMount(mount){
+    var m = String(mount == null ? '' : mount);
+    return /^\/[A-Za-z0-9._~\-\/]*$/.test(m) ? m : '';
+  }
+
+  function copyText(text){
+    if (!text) return Promise.resolve(false);
+    // 局域网 http 下不是安全上下文，没有 Clipboard API，需要退回 execCommand
+    if (navigator.clipboard && window.isSecureContext){
+      return navigator.clipboard.writeText(text).then(function(){ return true; },
+        function(){ return legacyCopy(text); });
+    }
+    return Promise.resolve(legacyCopy(text));
+  }
+
+  function legacyCopy(text){
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    var ok = false;
+    try {
+      ta.select();
+      ok = document.execCommand('copy');
+    } catch (e){ ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  var toastTimer = null;
+  function showToast(msg, kind){
+    var el = $('toast');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    el.classList.toggle('bad', kind === 'bad');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){
+      el.classList.add('hidden');
+    }, 2600);
+  }
+
+  /* ============================================================
+     错误横幅：只提示，不清空已有数据
+     ============================================================ */
+  function showBanner(msg, src){
+    var el = $('banner');
+    if (!el) return;
+    setText('bannerText', msg);
+    el.classList.remove('hidden');
+    state.bannerSrc = src || '';
+  }
+
+  function clearBanner(src){
+    if (src && state.bannerSrc && state.bannerSrc !== src) return;  // 别的来源的错误别顺手清掉
+    var el = $('banner');
+    if (el) el.classList.add('hidden');
+    state.bannerSrc = '';
+  }
+
+  /* ============================================================
+     token 存取（隐私模式下 localStorage 可能抛异常）
+     ============================================================ */
+  function getToken(){
+    try { return localStorage.getItem(TOKEN_KEY) || ''; } catch (e){ return ''; }
+  }
+  function setToken(t){
+    try {
+      if (t) localStorage.setItem(TOKEN_KEY, t);
+      else localStorage.removeItem(TOKEN_KEY);
+    } catch (e){ /* 存不下就退化成内存态：本次会话仍可用 */ }
+  }
+
+  /* ============================================================
+     统一请求封装
+     - 自动带 X-Panel-Token
+     - 401 → 回到登录遮罩（登录接口自身除外）
+     - 网络错误 / 非 2xx / 业务 ok:false 都抛可读信息
+     ============================================================ */
+  function api(path, opts){
+    var o = opts || {};
+    var headers = { 'Accept': 'application/json' };
+    var k;
+    if (o.headers){
+      for (k in o.headers){
+        if (Object.prototype.hasOwnProperty.call(o.headers, k)) headers[k] = o.headers[k];
+      }
+    }
+    var token = getToken();
+    if (token) headers['X-Panel-Token'] = token;
+
+    var body = o.body;
+    if (body !== undefined && body !== null && typeof body !== 'string'){
+      headers['Content-Type'] = 'application/json';
+      body = JSON.stringify(body);
+    }
+
+    return fetch(path, {
+      method: o.method || 'GET',
+      headers: headers,
+      body: body,
+      cache: 'no-store',
+      credentials: 'same-origin'
+    }).catch(function(){
+      var err = new Error('无法连接网关服务（网络中断或服务未启动）');
+      err.network = true;
+      throw err;
+    }).then(function(res){
+      return res.text().then(function(text){
+        var data = null;
+        if (text){
+          try { data = JSON.parse(text); } catch (e){ data = null; }
+        }
+        if (res.status === 401 && o.redirectOn401 !== false){
+          setToken('');
+          state.auth = false;
+          showOverlay();
+          showLoginError('登录已失效，请重新输入面板密码');
+          var e401 = new Error('登录已失效');
+          e401.status = 401;
+          throw e401;
+        }
+        if (!res.ok){
+          var msg = (data && (data.error || data.message)) || ('请求失败（HTTP ' + res.status + '）');
+          var err = new Error(String(msg));
+          err.status = res.status;
+          err.data = data;
+          throw err;
+        }
+        if (!data) return {};               // 204 / 空体按成功处理
+        if (data.ok === false){
+          var e2 = new Error(String(data.error || '服务端返回失败'));
+          e2.status = res.status;
+          e2.data = data;
+          throw e2;
+        }
+        return data;
+      });
+    });
+  }
+
+  /* ============================================================
+     登录遮罩
+     ============================================================ */
+  function showOverlay(){
+    var el = $('loginOverlay');
+    if (el) el.classList.remove('hidden');
+    setTimeout(function(){
+      var pw = $('loginPw');
+      if (pw && state.auth === false) pw.focus();
+    }, 30);
+  }
+
+  function hideOverlay(){
+    var el = $('loginOverlay');
+    if (el) el.classList.add('hidden');
+    showLoginError('');
+  }
+
+  function showLoginError(msg){
+    var el = $('loginErr');
+    if (!el) return;
+    if (!msg){ el.classList.add('hidden'); el.textContent = ''; return; }
+    el.textContent = msg;
+    el.classList.remove('hidden');
+  }
+
+  function showLoginHint(){
+    var el = $('loginHint');
+    if (el){
+      if (state.passwordDefault){
+        el.textContent = '当前仍是默认密码 admin，登录后请到「设置」里修改。';
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+        el.textContent = '';
+      }
+    }
+    // 设置页那张卡片才是真正改密码的地方，同一句提示放这儿更有用
+    setText('pwHint', state.passwordDefault
+      ? '当前仍是默认密码 admin，建议立即修改。'
+      : '修改后下次登录用新密码。');
+  }
+
+  function checkAuth(){
+    return api('/panel/status', { redirectOn401:false }).then(function(d){
+      state.auth = !!d.authenticated;
+      state.passwordDefault = !!d.panel_password_default;
+      if (state.auth){
+        hideOverlay();
+        showLoginHint();          // 已登录时它只负责更新设置页的密码提示
+        return loadAll();
+      }
+      showOverlay();
+      showLoginHint();
+      return null;
+    }).catch(function(e){
+      state.auth = false;
+      showOverlay();
+      showLoginHint();
+      // 401 只说明「还没登录」，遮罩已经讲清楚了；只有真故障才值得一条红横幅
+      if (!e || e.status !== 401) showBanner('无法读取面板状态：' + e.message, 'status');
+      return null;
+    });
+  }
+
+  function doLogin(ev){
+    if (ev) ev.preventDefault();
+    var pw = $('loginPw');
+    var btn = $('btnLogin');
+    var value = pw ? pw.value : '';
+    if (!value){
+      showLoginError('请输入面板密码');
+      if (pw) pw.focus();
+      return;
+    }
+    showLoginError('');
+    if (btn){ btn.disabled = true; btn.textContent = '登录中…'; }
+    api('/panel/login', { method:'POST', body:{ password:value }, redirectOn401:false })
+      .then(function(d){
+        if (!d.token) throw new Error('服务端没有返回 token');
+        setToken(d.token);
+        state.auth = true;
+        if (pw) pw.value = '';
+        hideOverlay();
+        clearBanner();
+        showToast('登录成功');
+        loadAll();          // 故意不 await：拉数据失败不该被当成登录失败
+      })
+      .catch(function(e){
+        setToken('');
+        showLoginError(e.message || '登录失败');
+        if (pw) pw.focus();
+      })
+      .then(function(){
+        if (btn){ btn.disabled = false; btn.textContent = '登录'; }
+      });
+  }
+
+  function doLogout(){
+    if (!confirm('确定退出登录？之后需要重新输入面板密码。')) return;
+    // redirectOn401 关掉：主动退出时 token 失效是正常情况，不该弹「登录已失效」
+    api('/panel/logout', { method:'POST', redirectOn401:false }).catch(function(){ /* 本地清掉即可 */ })
+      .then(function(){
+        setToken('');
+        state.auth = false;
+        resetData();
+        showOverlay();
+        showLoginHint();
+        showToast('已退出登录');
+      });
+  }
+
+  function resetData(){
+    // 退出登录时模态框里的轮询/导入也得停掉，否则会拿失效 token 一直打接口
+    closeAcctModal();
+    state.acctBusy = {};
+    state.overview = null;
+    state.models = null;
+    state.settings = null;
+    state.keys = null;
+    state.logs = null;
+    state.uptime = null;
+    state.loaded = {overview:false, models:false, settings:false, keys:false, logs:false};
+    setText('hubVersion', '—');
+    setText('uptime', '—');
+    renderGateway();
+    renderProviders();
+    renderAccounts();
+    renderModels();
+    renderKeys();
+    renderUpstreamSettings();
+    setText('logBox', '（尚未加载）');
+  }
+
+  /* ============================================================
+     数据加载：失败只弹横幅，保留上一次成功的数据
+     ============================================================ */
+  var LOAD_ERR = {
+    overview:'概览加载失败：', models:'模型列表加载失败：',
+    settings:'设置加载失败：', keys:'Key 列表加载失败：'
+  };
+
+  // 四个 GET 共用一条流水线：成功才重渲染，失败绝不清空已有数据。
+  function loadInto(key, path, render){
+    if (state.busy[key]) return Promise.resolve();
+    state.busy[key] = true;
+    return api(path).then(function(d){
+      state[key] = d;
+      state.loaded[key] = true;
+      render();
+      clearBanner(key);
+    }).catch(function(e){
+      if (e && e.status === 401) return;
+      showBanner(LOAD_ERR[key] + e.message, key);
+    }).then(function(){
+      state.busy[key] = false;
+    });
+  }
+
+  function loadOverview(){
+    return loadInto('overview', '/api/hub/overview', function(){
+      var hub = (state.overview && state.overview.hub) || {};
+      if (typeof hub.uptime_s === 'number') state.uptime = { base: hub.uptime_s, at: Date.now() };
+      renderGateway();
+      renderProviders();
+      renderAccounts();
+      syncProviderOptions();
+    });
+  }
+  function loadModels(force){
+    var url = '/api/hub/models' + (force ? '?refresh=1' : '');
+    return loadInto('models', url, function(){
+      renderModels();
+      buildCurl();
+      setText('modelsUpdated', '更新于 ' + new Date().toLocaleTimeString('zh-CN', {hour12: false}));
+    });
+  }
+
+  // 模型清单会随上游账号/目录变化，表格必须能手动刷新；切到这个页签也自动拉一次。
+  function refreshModels(){
+    var btn = $('btnRefreshModels');
+    if (btn){ btn.disabled = true; btn.textContent = '刷新中…'; }
+    return Promise.all([loadModels(true), loadOverview()]).then(function(){
+      if (btn){ btn.disabled = false; btn.textContent = '刷新'; }
+    }).catch(function(){
+      if (btn){ btn.disabled = false; btn.textContent = '刷新'; }
+    });
+  }
+  function loadSettings(){ return loadInto('settings', '/api/hub/settings', renderUpstreamSettings); }
+  function loadKeys(){ return loadInto('keys', '/api/hub/keys', renderKeys); }
+
+  function loadLogs(){
+    if (state.busy.logs) return Promise.resolve();
+    var provSel = $('logProvider');
+    var tailSel = $('logTail');
+    var prov = (provSel && provSel.value) || 'wb';
+    var tail = (tailSel && tailSel.value) || '200';
+    var btn = $('btnLoadLogs');
+    state.busy.logs = true;
+    if (btn){ btn.disabled = true; btn.textContent = '加载中…'; }
+    return api('/api/hub/logs?provider=' + encodeURIComponent(prov) + '&tail=' + encodeURIComponent(tail))
+      .then(function(d){
+        state.logs = d;
+        state.loaded.logs = true;
+        renderLogs();
+        clearBanner('logs');
+      })
+      .catch(function(e){
+        if (e && e.status === 401) return;
+        showBanner('日志加载失败：' + e.message, 'logs');
+      })
+      .then(function(){
+        state.busy.logs = false;
+        if (btn){ btn.disabled = false; btn.textContent = '刷新'; }
+      });
+  }
+
+  function loadAll(){
+    return Promise.all([loadOverview(), loadModels()]).then(function(){
+      if (state.tab === 'settings') return Promise.all([loadSettings(), loadKeys()]);
+      if (state.tab === 'logs') return loadLogs();
+      return null;
+    });
+  }
+
+  function refreshCurrent(){
+    if (!state.auth) return Promise.resolve();
+    var btn = $('btnRefresh');
+    if (btn){ btn.disabled = true; btn.textContent = '刷新中…'; }
+    var jobs = [loadOverview()];
+    if (state.tab === 'models') jobs.push(loadModels());
+    if (state.tab === 'settings') jobs.push(loadSettings(), loadKeys());
+    if (state.tab === 'logs') jobs.push(loadLogs());
+    return Promise.all(jobs).then(function(){
+      if (btn){ btn.disabled = false; btn.textContent = '刷新'; }
+      if (!state.bannerSrc) showToast('已刷新');   // 有错误横幅时别再报「成功」
+    });
+  }
+
+  /* ============================================================
+     渲染：顶栏 / 网关卡片
+     ============================================================ */
+  function renderGateway(){
+    var o = state.overview || {};
+    var hub = o.hub || {};
+    var gw = o.gateway || {};
+
+    setText('hubVersion', hub.version ? 'v' + hub.version : '—');
+    setText('gwBaseUrl', gw.base_url || (state.loaded.overview ? '（服务端未返回地址）' : '—'));
+    setText('gwModels', state.loaded.overview ? fmtInt(gw.models) : '—');
+    setText('gwAuth', state.loaded.overview ? (gw.auth_required ? '需要 Key' : '开放访问') : '—');
+    setText('gwKeys', state.loaded.overview ? fmtInt(gw.keys) : '—');
+    setText('gwMode', state.loaded.overview ? (hub.lan ? '局域网' : '仅本机') : '—');
+
+    if (state.uptime){
+      setText('uptime', fmtDuration(state.uptime.base + (Date.now() - state.uptime.at) / 1000));
+    }
+    renderEgress();
+    buildCurl();
+  }
+
+  // 当前出口：auto = 按模型派发；具体上游 = 硬切换（全部流量走它）。
+  // 这是「今天烧哪家额度」的开关，和「默认上游」（只在多义时兜底）不是一回事。
+  var EGRESS_ACTION = '/api/hub/egress';
+
+  function egressData(){
+    var ov = state.overview || {};
+    var eg = ov.egress || {};
+    return {
+      provider: eg.provider || 'auto',
+      realm: eg.realm || '',
+      realms: eg.provider_realms || {}
+    };
+  }
+
+  function egressProviders(){
+    var list = [{ id:'auto', label:'自动' }];
+    var seen = { auto:true };
+    var live = (state.overview && state.overview.providers) || [];
+    live.forEach(function(p){
+      if (p && p.id && !seen[p.id]){ seen[p.id] = true; list.push({ id:p.id, label:p.label || p.id }); }
+    });
+    KNOWN_PROVIDERS.forEach(function(id){
+      if (!seen[id]){ seen[id] = true; list.push({ id:id, label:providerLabel(id) }); }
+    });
+    return list;
+  }
+
+  function renderEgress(){
+    var eg = egressData();
+    var box = $('egressProviders');
+    if (box){
+      var html = '';
+      egressProviders().forEach(function(p){
+        html += '<button class="seg-btn' + (p.id === eg.provider ? ' on' : '') +
+                '" type="button" data-egress="' + esc(p.id) + '">' + esc(p.label) + '</button>';
+      });
+      box.innerHTML = html;
+    }
+    var realmBox = $('egressRealms');
+    var showRealm = eg.provider === 'wb' || eg.provider === 'qoder';
+    if (realmBox){
+      realmBox.classList.toggle('hidden', !showRealm);
+      if (showRealm){
+        // 以该上游**实际**在用的区域为准（它自己的看板也能改，这里要跟得上）
+        var current = eg.realms[eg.provider] || eg.realm || 'intl';
+        var rh = '';
+        ['intl', 'cn'].forEach(function(id){
+          rh += '<button class="seg-btn' + (id === current ? ' on' : '') +
+                '" type="button" data-realm="' + id + '">' + esc(REALM_TEXT[id] || id) + '</button>';
+        });
+        realmBox.innerHTML = rh;
+      }
+    }
+    var state_el = $('egressState');
+    if (state_el){
+      if (!state.loaded.overview){
+        state_el.textContent = '—';
+      } else if (eg.provider === 'auto'){
+        state_el.textContent = '当前：自动（按模型清单派发）';
+      } else {
+        var actual = eg.realms[eg.provider] ? REALM_TEXT[eg.realms[eg.provider]] || eg.realms[eg.provider] : '';
+        state_el.textContent = '当前：' + providerLabel(eg.provider) + (actual ? ' · ' + actual : '')
+          + '（共有模型走它，专属模型仍走自己的上游）';
+      }
+    }
+  }
+
+  function setEgress(provider, realm){
+    var body = JSON.stringify({ provider: provider, realm: realm || '' });
+    return api(EGRESS_ACTION, { method:'POST', body: body }).then(function(res){
+      if (!res || !res.ok) throw new Error((res && res.error) || '切换失败');
+      // 服务端已经把区域切到上游了；这里重拉概览把卡片上的区域/账号一起刷新
+      return refreshOverviewAfterChange();
+    }).catch(function(err){
+      showBanner('切换出口失败：' + (err && err.message ? err.message : err), 'action');
+    });
+  }
+
+  // curl 用第一个模型 id 做示例；模型还没加载出来时先给占位符
+  function buildCurl(){
+    var gw = (state.overview && state.overview.gateway) || {};
+    var base = gw.base_url ? String(gw.base_url).replace(/\/+$/, '') : '';
+    var list = (state.models && state.models.models) || [];
+    var first = list.length ? String(list[0].id || '') : '';
+    var model = first || '<模型名>';
+    var url = (base || '<网关地址>') + '/chat/completions';
+
+    var lines = ['curl ' + url + ' \\'];
+    if (gw.auth_required) lines.push('  -H "Authorization: Bearer $HUB_KEY" \\');
+    lines.push('  -H "Content-Type: application/json" \\');
+    lines.push('  -d \'{"model":"' + model.replace(/"/g, '\\"') +
+      '","messages":[{"role":"user","content":"你好"}]}\'');
+
+    state.curlText = lines.join('\n');
+    var box = $('curlBox');
+    if (box) box.textContent = state.curlText;
+  }
+
+  /* ============================================================
+     渲染：上游卡片
+     ============================================================ */
+  function providerCardHtml(p){
+    var id = String(p.id || '');
+    var meta = STATE_META[p.state] || { cls:'off', text:String(p.state || '未知') };
+    var mount = safeMount(p.mount);
+    var accounts = (p.accounts_ready == null ? '—' : p.accounts_ready) + '/' +
+                   (p.accounts == null ? '—' : p.accounts);
+
+    var html = '<article class="pcard" data-state="' + esc(p.state || '') + '">';
+    html += '<div class="pcard-head">';
+    html += '<div class="pcard-title"><span class="badge ' + meta.cls + '">' + esc(meta.text) + '</span>' +
+            '<span>' + esc(p.label || providerLabel(id)) + '</span></div>';
+    html += '<span class="port">' + (p.port == null ? '—' : esc(':' + p.port)) + '</span>';
+    html += '</div>';
+
+    html += '<dl class="kv">';
+    html += '<div><dt>版本</dt><dd title="' + esc(p.version || '') + '">' + esc(p.version || '—') + '</dd></div>';
+    html += '<div><dt>区域</dt><dd>' + esc(realmText(p.realm)) + '</dd></div>';
+    html += '<div><dt>账号</dt><dd>' + esc(accounts) + '</dd></div>';
+    html += '<div><dt>模型</dt><dd>' + (p.models == null ? '—' : esc(fmtInt(p.models))) + '</dd></div>';
+    html += '<div><dt>今日请求</dt><dd>' + (p.today_requests == null ? '—' : esc(fmtInt(p.today_requests))) + '</dd></div>';
+    html += '<div><dt>今日 token</dt><dd>' + (p.today_tokens == null ? '—' : esc(fmtTokens(p.today_tokens))) + '</dd></div>';
+    html += '<div><dt>重启次数</dt><dd>' + (p.restarts == null ? '—' : esc(fmtInt(p.restarts))) + '</dd></div>';
+    html += '<div><dt>运行时长</dt><dd>' + (p.uptime_s == null ? '—' : esc(fmtDuration(p.uptime_s))) + '</dd></div>';
+    html += '</dl>';
+
+    html += '<div class="pcard-foot">';
+    if (mount){
+      html += '<a class="btn ghost sm" href="' + esc(mount) + '" target="_blank" rel="noopener noreferrer">打开看板</a>';
+    } else {
+      html += '<span class="btn ghost sm is-disabled">无看板</span>';
+    }
+    html += '<button class="btn ghost sm" type="button" data-act="restart" data-id="' + esc(id) + '">重启</button>';
+    html += '</div>';
+
+    if (p.last_error){
+      html += '<p class="perr">' + esc(p.last_error) + '</p>';
+    }
+    html += '</article>';
+    return html;
+  }
+
+  function renderProviders(){
+    var box = $('providersBox');
+    if (!box) return;
+    if (!state.loaded.overview){
+      box.innerHTML = '<div class="empty">加载中…</div>';
+      return;
+    }
+    var list = (state.overview && state.overview.providers) || [];
+    if (!list.length){
+      box.innerHTML = '<div class="empty">服务端没有返回任何上游。</div>';
+      return;
+    }
+    box.innerHTML = list.map(providerCardHtml).join('');
+  }
+
+  /* ============================================================
+     渲染：账号总表
+     ============================================================ */
+  function acctStatus(a){
+    if (a.enabled === false) return { cls:'bad', text:'已禁用' };
+    if (a.token_expired) return { cls:'bad', text:'凭证过期' };
+    if (a.in_cooldown) return { cls:'warn', text:'冷却中' };
+    if (a.last_error) return { cls:'bad', text:'异常' };
+    return { cls:'ok', text:'正常' };
+  }
+
+  function accountRow(a){
+    var pid = String(a.provider || '');
+    var st = acctStatus(a);
+    var uid = a.uid == null ? '' : String(a.uid);
+    var uidShort = uid.length > 18 ? uid.slice(0, 16) + '…' : uid;
+    var note = a.note == null ? '' : String(a.note);
+    // 提交中、或没有 uid（契约按 provider+uid 定位，点不中）都置灰
+    var off = (state.acctBusy[acctBusyKey(pid, uid)] || !uid) ? ' disabled' : '';
+    var nextEnable = a.enabled === false ? '1' : '0';   // 点下去要切到的目标状态
+    var html = '<tr>';
+    html += '<td>' + pvBadge(pid) + '</td>';
+    html += '<td>' + esc(a.nickname || '—') + '</td>';
+    html += '<td class="mono uid" title="' + esc(uid) + '">' + esc(uidShort || '—') + '</td>';
+    html += '<td>' + esc(realmText(a.realm)) + '</td>';
+    html += '<td><span class="badge ' + st.cls + '">' + esc(st.text) + '</span></td>';
+    html += '<td class="num">' + esc(a.weight == null ? '—' : a.weight) + '</td>';
+    html += '<td class="note" title="' + esc(note) + '">' + esc(note || '—') + '</td>';
+    html += '<td class="acts">';
+    html += '<button class="btn ghost sm" type="button" data-acct-act="toggle" data-prov="' + esc(pid) +
+            '" data-uid="' + esc(uid) + '" data-enable="' + nextEnable + '"' + off + '>' +
+            (a.enabled === false ? '启用' : '禁用') + '</button>';
+    html += '<button class="btn ghost sm danger" type="button" data-acct-act="del" data-prov="' + esc(pid) +
+            '" data-uid="' + esc(uid) + '" data-name="' + esc(a.nickname || '') + '"' + off + '>删除</button>';
+    html += '</td>';
+    html += '</tr>';
+    return html;
+  }
+
+  function renderAccountFilter(){
+    var box = $('acctFilter');
+    if (!box) return;
+    var list = [{ id:'all', label:'全部' }];
+    var seen = { all:true };
+    providerList().forEach(function(p){
+      if (seen[p.id]) return;
+      seen[p.id] = true;
+      list.push({ id:p.id, label:p.label });
+    });
+    // 固定补齐三个上游：某个上游暂时没账号或没被服务端列出时，也能切过去看空表
+    KNOWN_PROVIDERS.forEach(function(id){
+      if (seen[id]) return;
+      seen[id] = true;
+      list.push({ id:id, label:providerLabel(id) });
+    });
+    // 筛选值可能在 overview 刷新后失效（上游被移除），兜底回「全部」
+    var valid = list.some(function(it){ return it.id === state.acctFilter; });
+    if (!valid) state.acctFilter = 'all';
+    box.innerHTML = list.map(function(it){
+      return '<button type="button" class="seg-btn' + (state.acctFilter === it.id ? ' on' : '') +
+        '" data-filter="' + esc(it.id) + '">' + esc(it.label) + '</button>';
+    }).join('');
+  }
+
+  function renderAccounts(){
+    var body = $('acctBody');
+    var emptyEl = $('acctEmpty');
+    if (!body || !emptyEl) return;
+
+    if (!state.loaded.overview){
+      body.innerHTML = '<tr><td colspan="8" class="muted">加载中…</td></tr>';
+      emptyEl.classList.add('hidden');
+      setText('acctCount', '');
+      return;
+    }
+
+    var all = (state.overview && state.overview.accounts) || [];
+    var q = state.acctQuery.trim().toLowerCase();
+    var rows = all.filter(function(a){
+      if (state.acctFilter !== 'all' && String(a.provider || '') !== state.acctFilter) return false;
+      if (!q) return true;
+      var hay = [a.nickname, a.uid, a.note, a.provider, providerLabel(a.provider)]
+        .map(function(v){ return String(v == null ? '' : v).toLowerCase(); }).join(' ');
+      return hay.indexOf(q) >= 0;
+    });
+
+    setText('acctCount', '共 ' + all.length + ' 个' + (rows.length !== all.length ? '，筛出 ' + rows.length : ''));
+
+    if (!rows.length){
+      body.innerHTML = '';
+      if (!all.length){
+        // 一个账号都没有：主推本页的「+ 添加账号」，同时保留上游看板入口
+        var links = providerList().map(function(p){
+          var mount = safeMount(p.mount);
+          return mount
+            ? '<a href="' + esc(mount) + '" target="_blank" rel="noopener noreferrer">去 ' + esc(p.label) + ' 看板添加账号</a>'
+            : '';
+        }).filter(Boolean).join('');
+        var hint = state.overview && state.overview.accounts_hint;
+        emptyEl.innerHTML = '<div>还没有任何账号，点上方「+ 添加账号」登录一个即可。</div>'
+          + (hint ? '<div class="muted" style="margin-top:6px">' + esc(hint) + '</div>' : '')
+          + '<div class="empty-links">' + links + '</div>';
+      } else {
+        emptyEl.textContent = '没有匹配的账号，试试换个关键字或筛选。';
+      }
+      emptyEl.classList.remove('hidden');
+      return;
+    }
+    emptyEl.classList.add('hidden');
+    body.innerHTML = rows.map(accountRow).join('');
+  }
+
+  /* ============================================================
+     渲染：模型与路由
+     ============================================================ */
+  function modelRow(m){
+    var id = String(m.id || '');
+    var rid = m.route_id == null ? '' : String(m.route_id);
+    var showRoute = !!rid && rid !== id;
+    var html = '<tr>';
+    html += '<td class="mono">' + esc(id || '—') + '</td>';
+    html += '<td>' + pvBadge(String(m.provider || '')) + '</td>';
+    html += '<td>' + esc(realmText(m.realm)) + '</td>';
+    html += '<td class="mono dim">' + (showRoute ? esc(rid) : '<span class="muted">—</span>') + '</td>';
+    html += '</tr>';
+    return html;
+  }
+
+  function renderModels(){
+    var body = $('modelBody');
+    var emptyEl = $('modelEmpty');
+    var sel = $('defaultProvider');
+    if (!body || !emptyEl || !sel) return;
+
+    if (!state.loaded.models){
+      body.innerHTML = '<tr><td colspan="4" class="muted">加载中…</td></tr>';
+      emptyEl.classList.add('hidden');
+      return;
+    }
+
+    var d = state.models || {};
+    var list = d.models || [];
+    var routing = d.routing || {};
+
+    // 默认上游下拉：上游清单来自 overview，值来自 models.routing
+    var opts = providerList().map(function(p){
+      var on = String(routing.default_provider || '') === p.id ? ' selected' : '';
+      return '<option value="' + esc(p.id) + '"' + on + '>' + esc(p.label) + '</option>';
+    }).join('');
+    sel.innerHTML = opts || '<option value="">—</option>';
+
+    var overrides = routing.overrides || {};
+    var ovN = Object.keys(overrides).length;
+    setText('modelsHint', '共 ' + list.length + ' 个模型' + (ovN ? '；另有 ' + ovN + ' 条模型级覆盖（改配置文件）' : '') +
+      '。同名模型按默认上游派发，带 wb/、qoder/ 或 zcode/ 前缀可强制指定。');
+
+    var q = state.modelQuery.trim().toLowerCase();
+    var rows = list.filter(function(m){
+      if (!q) return true;
+      var hay = [m.id, m.route_id, m.provider, m.owned_by]
+        .map(function(v){ return String(v == null ? '' : v).toLowerCase(); }).join(' ');
+      return hay.indexOf(q) >= 0;
+    });
+
+    if (!rows.length){
+      body.innerHTML = '';
+      emptyEl.textContent = list.length ? '没有匹配的模型。' : '服务端还没有合并出任何模型。';
+      emptyEl.classList.remove('hidden');
+      return;
+    }
+    emptyEl.classList.add('hidden');
+    body.innerHTML = rows.map(modelRow).join('');
+  }
+
+  /* ============================================================
+     渲染：设置（Key / 上游开关）
+     ============================================================ */
+  function renderKeys(){
+    var body = $('keyBody');
+    if (!body) return;
+    if (!state.loaded.keys){
+      body.innerHTML = '<tr><td colspan="5" class="muted">加载中…</td></tr>';
+      return;
+    }
+    var d = state.keys || {};
+    var keys = d.keys || [];
+    setText('keysHint', '当前网关鉴权：' + (d.auth_required ? '开启（客户端必须带 Key）' : '关闭') +
+      '。密钥只显示脱敏值；已有 Key 的密钥留空表示不改。');
+
+    if (!keys.length){
+      body.innerHTML = '<tr><td colspan="5" class="muted">还没有配置任何 Key。</td></tr>';
+      return;
+    }
+    body.innerHTML = keys.map(function(k){
+      var html = '<tr>';
+      html += '<td>' + esc(k.name || '—') + '</td>';
+      html += '<td class="mono">' + esc(k.masked || '—') + '</td>';
+      html += '<td><label class="chk"><input type="checkbox" data-key-toggle="' + esc(k.id) + '"' +
+              (k.enabled ? ' checked' : '') + '></label></td>';
+      html += '<td class="dim">' + esc(k.created_at ? fmtServerTime(k.created_at) : '—') + '</td>';
+      html += '<td class="ta-r"><button class="btn ghost sm danger" type="button" data-key-del="' +
+              esc(k.id) + '">删除</button></td>';
+      html += '</tr>';
+      return html;
+    }).join('');
+  }
+
+  function renderUpstreamSettings(){
+    var box = $('pvSettings');
+    if (!box) return;
+    if (!state.loaded.settings){
+      box.innerHTML = '<div class="empty">加载中…</div>';
+      return;
+    }
+    var provs = (state.settings && state.settings.settings && state.settings.settings.providers) || {};
+    var ids = Object.keys(provs);
+    if (!ids.length){
+      box.innerHTML = '<div class="empty">服务端没有返回上游配置。</div>';
+      return;
+    }
+    box.innerHTML = ids.map(function(id){
+      var p = provs[id] || {};
+      var html = '<div class="pvrow" data-pv="' + esc(id) + '">';
+      html += '<div class="pvrow-name">' + esc(providerLabel(id)) + '<span class="mono">' + esc(id) + '</span></div>';
+      html += '<label class="chk"><input type="checkbox" data-pv-enabled="' + esc(id) + '"' +
+              (p.enabled ? ' checked' : '') + '> 启用</label>';
+      html += '<label class="field"><span>端口</span><input class="input num" type="number" min="1" max="65535" step="1"' +
+              ' data-pv-port="' + esc(id) + '" value="' + esc(p.port == null ? '' : p.port) + '"></label>';
+      html += '</div>';
+      return html;
+    }).join('');
+  }
+
+  function renderLogs(){
+    var box = $('logBox');
+    if (!box) return;
+    if (!state.loaded.logs || !state.logs){
+      box.textContent = '（尚未加载）';
+      return;
+    }
+    var lines = state.logs.lines || [];
+    box.textContent = lines.length ? lines.join('\n') : '（暂无日志）';
+    box.scrollTop = box.scrollHeight;   // 默认看最新的一行
+    setText('logMeta', (state.logs.provider ? providerLabel(state.logs.provider) : '') +
+      ' · ' + lines.length + ' 行');
+  }
+
+  /* ============================================================
+     动作
+     ============================================================ */
+  function findProvider(id){
+    var list = (state.overview && state.overview.providers) || [];
+    for (var i = 0; i < list.length; i++){
+      if (String(list[i].id) === String(id)) return list[i];
+    }
+    return null;
+  }
+
+  function restartProvider(id, btn){
+    var p = findProvider(id);
+    var label = p && p.label ? p.label : providerLabel(id);
+    if (!confirm('重启「' + label + '」上游？正在处理的请求会中断。')) return;
+    if (btn){ btn.disabled = true; btn.textContent = '重启中…'; }
+    api(PROVIDER_ACTION + encodeURIComponent(id) + '/restart', { method:'POST' })
+      .then(function(){
+        showToast(label + ' 已重启');
+        return Promise.all([loadOverview(), loadModels()]);
+      })
+      .catch(function(e){
+        if (e && e.status === 401) return;
+        showBanner('重启「' + label + '」失败：' + e.message, 'action');
+      })
+      .then(function(){
+        if (btn){ btn.disabled = false; btn.textContent = '重启'; }
+      });
+  }
+
+  function saveDefaultProvider(){
+    var sel = $('defaultProvider');
+    var btn = $('btnSaveDefault');
+    var val = sel ? sel.value : '';
+    if (!val){
+      showBanner('请选择默认上游', 'action');
+      return;
+    }
+    if (btn){ btn.disabled = true; btn.textContent = '保存中…'; }
+    api('/api/hub/settings', { method:'POST', body:{ routing:{ default_provider: val } } })
+      .then(function(d){
+        if (d.settings) state.settings = { ok:true, settings:d.settings };
+        if (state.loaded.settings) renderUpstreamSettings();
+        showToast('默认上游已设为 ' + providerLabel(val));
+        return loadModels();   // 派发归属会变，重新拉一遍
+      })
+      .catch(function(e){
+        if (e && e.status === 401) return;
+        showBanner('保存默认上游失败：' + e.message, 'action');
+      })
+      .then(function(){
+        if (btn){ btn.disabled = false; btn.textContent = '保存'; }
+      });
+  }
+
+  // 提交 Key 列表：已有 Key 一律带空 key，表示「沿用已存密钥」
+  function postKeys(payload, okMsg){
+    return api('/api/hub/keys', { method:'POST', body: payload }).then(function(d){
+      state.keys = d;
+      state.loaded.keys = true;
+      renderKeys();
+      showToast(okMsg || '已保存');
+      return true;
+    }).catch(function(e){
+      if (e && e.status === 401) return false;
+      showBanner('保存 Key 失败：' + e.message, 'action');
+      renderKeys();          // 回滚界面上的勾选状态，别和服务端不一致
+      return false;
+    });
+  }
+
+  function currentKeyPayload(){
+    var list = (state.keys && state.keys.keys) || [];
+    return list.map(function(k){
+      return { id:k.id, name:k.name, key:'', enabled:!!k.enabled };
+    });
+  }
+
+  function addKey(){
+    var nameEl = $('newKeyName');
+    var valEl = $('newKeyValue');
+    var enEl = $('newKeyEnabled');
+    var name = nameEl ? nameEl.value.trim() : '';
+    var value = valEl ? valEl.value.trim() : '';
+    if (!value){
+      showBanner('新 Key 的密钥不能为空', 'action');
+      if (valEl) valEl.focus();
+      return;
+    }
+    var payload = currentKeyPayload();
+    var item = { name: name || '新 Key', key: value, enabled: enEl ? !!enEl.checked : true };
+    payload.push(item);   // 新条目不带 id，由服务端生成
+    postKeys({ keys: payload }, 'Key 已添加').then(function(ok){
+      if (!ok) return;    // 失败时保留输入，方便用户改了再提交
+      if (nameEl) nameEl.value = '';
+      if (valEl) valEl.value = '';
+    });
+  }
+
+  function deleteKey(id){
+    var list = (state.keys && state.keys.keys) || [];
+    var target = null;
+    list.forEach(function(k){ if (String(k.id) === String(id)) target = k; });
+    if (!confirm('删除 Key「' + (target && target.name ? target.name : id) + '」？该 Key 将立即失效。')) return;
+    var payload = list.filter(function(k){ return String(k.id) !== String(id); }).map(function(k){
+      return { id:k.id, name:k.name, key:'', enabled:!!k.enabled };
+    });
+    postKeys({ keys: payload, delete_ids: [id] }, 'Key 已删除');
+  }
+
+  function toggleKey(id, checked){
+    var payload = currentKeyPayload().map(function(k){
+      if (String(k.id) === String(id)) k.enabled = !!checked;
+      return k;
+    });
+    postKeys({ keys: payload }, checked ? 'Key 已启用' : 'Key 已停用');
+  }
+
+  function savePassword(){
+    var a = $('pwNew');
+    var b = $('pwConfirm');
+    var btn = $('btnSavePw');
+    var v1 = a ? a.value : '';
+    var v2 = b ? b.value : '';
+    if (!v1){ showBanner('新密码不能为空', 'action'); if (a) a.focus(); return; }
+    if (v1 !== v2){ showBanner('两次输入的密码不一致', 'action'); if (b) b.focus(); return; }
+    if (btn){ btn.disabled = true; btn.textContent = '保存中…'; }
+    api('/api/hub/panel-password', { method:'POST', body:{ password:v1 } })
+      .then(function(){
+        if (a) a.value = '';
+        if (b) b.value = '';
+        state.passwordDefault = false;
+        showLoginHint();
+        showToast('面板密码已修改');
+      })
+      .catch(function(e){
+        if (e && e.status === 401) return;
+        showBanner('修改密码失败：' + e.message, 'action');
+      })
+      .then(function(){
+        if (btn){ btn.disabled = false; btn.textContent = '修改密码'; }
+      });
+  }
+
+  function saveProviderSettings(){
+    var rows = document.querySelectorAll('#pvSettings [data-pv]');
+    if (!rows.length){
+      showBanner('没有可保存的上游配置', 'action');
+      return;
+    }
+    var payload = {};
+    var bad = '';
+    for (var i = 0; i < rows.length; i++){
+      var row = rows[i];
+      var id = row.getAttribute('data-pv');
+      var chk = row.querySelector('[data-pv-enabled]');
+      var inp = row.querySelector('[data-pv-port]');
+      var port = parseInt(inp ? inp.value : '', 10);
+      if (!isFinite(port) || port < 1 || port > 65535){
+        bad = providerLabel(id) + ' 的端口必须是 1-65535 的整数';
+        break;
+      }
+      payload[id] = { enabled: !!(chk && chk.checked), port: port };
+    }
+    if (bad){ showBanner(bad, 'action'); return; }
+
+    var btn = $('btnSaveProviders');
+    if (btn){ btn.disabled = true; btn.textContent = '保存中…'; }
+    api('/api/hub/settings', { method:'POST', body:{ providers: payload } })
+      .then(function(d){
+        if (d.settings) state.settings = { ok:true, settings:d.settings };
+        renderUpstreamSettings();
+        showToast(d.restart_required ? '已保存，重启后生效' : '已保存');
+        return loadOverview();
+      })
+      .catch(function(e){
+        if (e && e.status === 401) return;
+        showBanner('保存上游设置失败：' + e.message, 'action');
+      })
+      .then(function(){
+        if (btn){ btn.disabled = false; btn.textContent = '保存上游设置'; }
+      });
+  }
+
+  /* ============================================================
+     账号动作：启用 / 禁用 / 删除
+     - 成功后只重拉 overview 并重渲染，不做整页刷新（会丢掉当前页签/滚动位置）
+     - 请求期间按 provider|uid 记 busy：10 秒自动刷新会重画表格，
+       靠这个标记让按钮重画后仍然是禁用的
+     ============================================================ */
+  function acctBusyKey(provider, uid){ return String(provider) + '|' + String(uid); }
+
+  // 10 秒轮询正占着 overview 时 loadOverview() 会直接返回（loadInto 的防重入），
+  // 这里补几次短重试：账号刚改完要能立刻看到，而不是等下一轮自动刷新
+  function refreshOverviewAfterChange(tries){
+    var n = tries || 0;
+    if (!state.busy.overview || n >= 5) return loadOverview();
+    return new Promise(function(resolve){
+      setTimeout(function(){ resolve(refreshOverviewAfterChange(n + 1)); }, 400);
+    });
+  }
+
+  function setAcctBusy(provider, uid, busy){
+    var key = acctBusyKey(provider, uid);
+    if (busy) state.acctBusy[key] = true;
+    else delete state.acctBusy[key];
+  }
+
+  // 连点会让同一账号被并发提交两次，先把这一行的按钮全锁上
+  function lockRowButtons(btn){
+    var tr = btn && btn.closest ? btn.closest('tr') : null;
+    if (!tr) return;
+    var list = tr.querySelectorAll('button');
+    for (var i = 0; i < list.length; i++) list[i].disabled = true;
+  }
+
+  function patchLocalAccount(provider, uid, patch){
+    var list = (state.overview && state.overview.accounts) || [];
+    for (var i = 0; i < list.length; i++){
+      if (String(list[i].provider || '') === String(provider) &&
+          String(list[i].uid == null ? '' : list[i].uid) === String(uid)){
+        for (var k in patch){
+          if (Object.prototype.hasOwnProperty.call(patch, k)) list[i][k] = patch[k];
+        }
+        return list[i];
+      }
+    }
+    return null;
+  }
+
+  function toggleAccount(provider, uid, enable, btn){
+    var key = acctBusyKey(provider, uid);
+    if (state.acctBusy[key]) return;
+    setAcctBusy(provider, uid, true);
+    lockRowButtons(btn);
+    api(ACCOUNTS_SET, { method:'POST', body:{ provider:provider, uid:uid, enabled:!!enable } })
+      .then(function(){
+        // 先改本地副本：10 秒轮询正占着 overview 时 loadOverview 会直接返回，
+        // 只靠重拉会让按钮停在旧状态
+        patchLocalAccount(provider, uid, { enabled: !!enable });
+        showToast(enable ? '账号已启用' : '账号已禁用');
+        return refreshOverviewAfterChange();
+      })
+      .catch(function(e){
+        if (e && e.status === 401) return;
+        showBanner((enable ? '启用' : '禁用') + '账号失败：' + e.message, 'action');
+      })
+      .then(function(){
+        setAcctBusy(provider, uid, false);
+        renderAccounts();      // 失败时也重画，把按钮恢复成可点
+      });
+  }
+
+  function deleteAccount(provider, uid, nickname, btn){
+    var key = acctBusyKey(provider, uid);
+    if (state.acctBusy[key]) return;
+    var label = nickname || uid;
+    if (!confirm('删除 ' + providerLabel(provider) + ' 账号「' + label + '」？\n' +
+        '删除后该账号的凭证会从本地移除，需要重新登录才能加回来。')) return;
+    setAcctBusy(provider, uid, true);
+    lockRowButtons(btn);
+    api(ACCOUNTS_DELETE, { method:'POST', body:{ provider:provider, uid:uid } })
+      .then(function(){
+        // 本地先摘掉这一行，避免重拉被 busy 挡住时表里还留着已删账号
+        if (state.overview && state.overview.accounts){
+          state.overview.accounts = state.overview.accounts.filter(function(a){
+            return !(String(a.provider || '') === String(provider) &&
+                     String(a.uid == null ? '' : a.uid) === String(uid));
+          });
+        }
+        showToast('账号已删除');
+        return refreshOverviewAfterChange();
+      })
+      .catch(function(e){
+        if (e && e.status === 401) return;
+        showBanner('删除账号失败：' + e.message, 'action');
+      })
+      .then(function(){
+        setAcctBusy(provider, uid, false);
+        renderAccounts();
+      });
+  }
+
+  /* ============================================================
+     添加账号模态框
+     三种状态：选上游 / 等待授权 / 结果。
+     OAuth 轮询是这里唯一的定时器来源，任何退出路径（成功、失败、取消、
+     点遮罩、Esc、退出登录）都必须清掉，否则关掉弹层后还会一直打 poll。
+     ============================================================ */
+  var acctAutoCloseTimer = null;
+  // 每次开关弹层 +1：login/start 的回包回来时若序号变了，说明用户已经把弹层
+  // 关了（或关了又开），这时必须丢弃回包并取消刚建好的服务端会话。
+  var acctFlowSeq = 0;
+  var loginStarting = false;      // start 请求在途：挡住连点造成的两个会话
+
+  function showAcctStep(step){
+    var els = { pick:$('acctStepPick'), wait:$('acctStepWait'), result:$('acctStepResult') };
+    Object.keys(els).forEach(function(k){
+      if (els[k]) els[k].classList.toggle('hidden', k !== step);
+    });
+  }
+
+  // auth_url 来自服务端，仍按外部输入对待：只放行 http(s) 与站内绝对路径
+  function safeHttpUrl(url){
+    var s = String(url == null ? '' : url);
+    if (/^https?:\/\/\S+$/i.test(s)) return s;
+    // 兼容相对写法（/auth/...）；(?!\/) 挡住 //evil.com 这类协议相对地址
+    if (/^\/(?!\/)\S*$/.test(s)) return s;
+    return '';
+  }
+
+  function setAuthUrl(url){
+    var a = $('acctAuthUrl');
+    var openBtn = $('btnOpenAuth');
+    var safe = safeHttpUrl(url);
+    if (a){
+      if (safe){
+        a.href = safe;
+        a.textContent = safe;
+      } else {
+        a.removeAttribute('href');      // 非法链接连 href 都不留，免得被点
+        a.textContent = url ? String(url) : '（服务端没有返回授权链接）';
+      }
+    }
+    if (openBtn) openBtn.disabled = !safe;
+  }
+
+  // 选中上游后才显示对应配置：wb/qoder 只有区域 + 开始登录，zcode 多一个粘贴凭证
+  function syncAcctProviderPane(){
+    var pid = state.acctProv;
+    var btns = document.querySelectorAll('#acctProvPick .prov-pick-btn');
+    for (var i = 0; i < btns.length; i++){
+      var on = btns[i].getAttribute('data-prov') === pid;
+      btns[i].classList.toggle('on', on);
+      btns[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+    var oauth = $('acctOauthPane');
+    var zcode = $('acctZcodePane');
+    if (oauth) oauth.classList.toggle('hidden', !(pid === 'wb' || pid === 'qoder'));
+    if (zcode) zcode.classList.toggle('hidden', pid !== 'zcode');
+    // 区域默认跟随该上游**当前**在用的区域：用户想加的是「现在这个区」的号，
+    // 默认落在国际版会让 Qoder 国内号一登录就走错站点。
+    var sel = $('acctRealm');
+    if (sel && (pid === 'wb' || pid === 'qoder')){
+      var live = (state.overview && state.overview.providers) || [];
+      for (var j = 0; j < live.length; j++){
+        if (live[j] && live[j].id === pid && (live[j].realm === 'cn' || live[j].realm === 'intl')){
+          sel.value = live[j].realm;
+          break;
+        }
+      }
+    }
+  }
+
+  function acctTitle(){
+    return state.acctProv ? '添加 ' + providerLabel(state.acctProv) + ' 账号' : '添加账号';
+  }
+
+  function resetAcctModal(){
+    setText('acctModalTitle', '添加账号');
+    setText('acctWaitLine', '等待授权…');
+    setText('acctWaitMeta', '');
+    setText('acctResultMsg', '');
+    setAuthUrl('');
+    // 凭证不该留在 DOM 里；顺带避免下次打开时误点导入、把同一批账号加两遍
+    var ta = $('acctImportRows');
+    if (ta) ta.value = '';
+    setText('acctImportMeta', '空行会被忽略，凭证里的空格原样保留。');
+    state.acctProv = '';
+    showAcctStep('pick');
+    syncAcctProviderPane();
+  }
+
+  function openAcctModal(){
+    var el = $('acctModal');
+    if (!el) return;
+    acctFlowSeq++;
+    resetAcctModal();
+    el.classList.remove('hidden');
+    var first = document.querySelector('#acctProvPick .prov-pick-btn');
+    if (first) setTimeout(function(){ if (first.focus) first.focus(); }, 30);
+  }
+
+  // 关闭 = 停轮询 + 让服务端取消未完成会话 + 复位界面；三个状态的关闭路径共用
+  function closeAcctModal(){
+    acctFlowSeq++;      // 先作废在途请求的回包，再收尾
+    if (acctAutoCloseTimer){ clearTimeout(acctAutoCloseTimer); acctAutoCloseTimer = null; }
+    stopLogin(false);
+    var el = $('acctModal');
+    if (el) el.classList.add('hidden');
+    resetAcctModal();
+  }
+
+  function showAcctResult(kind, msg, canRetry){
+    showAcctStep('result');
+    var el = $('acctResultMsg');
+    if (el){
+      el.textContent = msg || '';
+      el.classList.toggle('ok', kind === 'ok');
+      el.classList.toggle('bad', kind === 'bad');
+    }
+    setText('acctModalTitle', kind === 'ok' ? '添加成功' : '添加失败');
+    var again = $('btnResultAgain');
+    if (again) again.classList.toggle('hidden', !canRetry);
+    var done = $('btnResultClose');
+    if (done) done.textContent = kind === 'ok' ? '完成' : '关闭';
+  }
+
+  /* ---------- OAuth：login/start → 每 2 秒 login/poll ---------- */
+  function loginBusy(){ return !!(state.login && state.login.sid); }
+
+  // success=true 表示会话已由服务端收尾（ready/failed/expired），不必再发 cancel
+  function stopLogin(success){
+    var s = state.login;
+    if (!s) return;
+    if (s.timer){ clearTimeout(s.timer); }
+    state.login = null;
+    if (success) return;
+    // 取消是尽力而为：已退出登录时会 401，静默吞掉即可（服务端自己也会过期）
+    api(ACCOUNTS_LOGIN_CANCEL, {
+      method:'POST',
+      body:{ provider:s.provider, state:s.sid },
+      redirectOn401:false
+    }).catch(function(){ /* 取消失败不打扰用户 */ });
+  }
+
+  function schedulePoll(delay){
+    var s = state.login;
+    if (!s) return;
+    if (s.timer) clearTimeout(s.timer);
+    s.timer = setTimeout(pollLogin, delay == null ? LOGIN_POLL_MS : delay);
+  }
+
+  function startLogin(provider, realm, btn){
+    if (loginStarting || loginBusy()) return;
+    loginStarting = true;
+    var seq = acctFlowSeq;
+    var body = { provider: provider };
+    if (realm) body.realm = realm;      // zcode 不走区域，别把空 realm 发过去
+    if (btn){ btn.disabled = true; btn.textContent = '启动中…'; }
+    api(ACCOUNTS_LOGIN_START, { method:'POST', body: body })
+      .then(function(d){
+        if (!d || !d.state) throw new Error('服务端没有返回 state');
+        if (seq !== acctFlowSeq){
+          // 请求还没回来用户就把弹层关了：服务端会话已经建出来，补一次取消
+          api(ACCOUNTS_LOGIN_CANCEL, {
+            method:'POST',
+            body:{ provider:String(d.provider || provider), state:String(d.state) },
+            redirectOn401:false
+          }).catch(function(){ /* 取消不掉就让服务端自己过期 */ });
+          return;
+        }
+        state.login = {
+          provider: String(d.provider || provider),
+          realm: realm || '',
+          sid: String(d.state),
+          deadline: Date.now() + LOGIN_MAX_MS,
+          timer: null
+        };
+        showAcctStep('wait');
+        setText('acctModalTitle', '登录 ' + providerLabel(state.login.provider));
+        setAuthUrl(d.auth_url);
+        setText('acctWaitLine', '等待授权…');
+        setText('acctWaitMeta', (state.login.realm ? realmText(state.login.realm) + ' · ' : '') +
+          '每 2 秒自动检查一次，最多等 5 分钟。');
+        schedulePoll(0);      // 立即查一次：有的上游会秒回 ready
+      })
+      .catch(function(e){
+        if (e && e.status === 401) return;
+        if (seq !== acctFlowSeq) return;      // 弹层已关，别把结果写进隐藏的面板
+        showAcctResult('bad', '开始登录失败：' + (e.message || '未知错误'), true);
+      })
+      .then(function(){
+        loginStarting = false;
+        if (btn){ btn.disabled = false; btn.textContent = '开始登录'; }
+      });
+  }
+
+  function pollLogin(){
+    var s = state.login;
+    if (!s) return;
+    s.timer = null;
+    if (Date.now() > s.deadline){
+      stopLogin(false);     // 超时也要 cancel，别把服务端会话留在 pending
+      showAcctResult('bad', '等待授权超时（5 分钟）。请重新开始，或到上游看板确认授权状态。', true);
+      return;
+    }
+    var path = ACCOUNTS_LOGIN_POLL + '?provider=' + encodeURIComponent(s.provider) +
+      '&state=' + encodeURIComponent(s.sid);
+    api(path).then(function(d){
+      if (!state.login || state.login.sid !== s.sid) return;   // 期间被取消/换会话
+      var status = String((d && d.status) || '');
+      if (status === 'ready'){
+        var acct = (d && d.account) || {};
+        var name = acct.nickname || acct.uid || '账号';
+        stopLogin(true);
+        showAcctResult('ok', '已添加 ' + name, false);
+        showToast('已添加 ' + name);
+        refreshOverviewAfterChange();     // 契约：只重拉 overview，不整页刷新
+        if (acctAutoCloseTimer) clearTimeout(acctAutoCloseTimer);
+        // 留 1.2 秒让用户看清昵称，再自动关闭
+        acctAutoCloseTimer = setTimeout(function(){
+          acctAutoCloseTimer = null;
+          closeAcctModal();
+        }, 1200);
+        return;
+      }
+      if (status === 'failed' || status === 'expired'){
+        stopLogin(true);
+        showAcctResult('bad', (d && d.message) || (status === 'expired'
+          ? '授权已过期，请重新开始。'
+          : '授权失败，请重新开始。'), true);
+        return;
+      }
+      setText('acctWaitLine', (d && d.message) || '等待授权…');
+      schedulePoll(LOGIN_POLL_MS);
+    }).catch(function(e){
+      if (!state.login || state.login.sid !== s.sid) return;
+      if (e && e.status === 401){
+        // 面板登录态失效：继续轮询只会一路 401，直接收尾
+        stopLogin(true);
+        showAcctResult('bad', '面板登录已失效，请重新登录后再试。', true);
+        return;
+      }
+      // 单次网络抖动不该中断会话：把原因写在状态行，继续按节奏重试
+      setText('acctWaitLine', '检查授权状态失败（' + (e.message || '网络异常') + '），继续重试…');
+      schedulePoll(LOGIN_POLL_MS);
+    });
+  }
+
+  function cancelLoginFlow(){
+    if (!loginBusy()) return;
+    stopLogin(false);
+    showAcctStep('pick');
+    setText('acctModalTitle', acctTitle());
+    syncAcctProviderPane();
+  }
+
+  /* ---------- ZCode：粘贴凭证导入 ---------- */
+  // 支持「名称<TAB>凭证」与「每行一个凭证」两种写法；空行忽略
+  function parseImportRows(text){
+    var out = [];
+    var lines = String(text == null ? '' : text).split(/\r?\n/);
+    for (var i = 0; i < lines.length; i++){
+      var raw = lines[i];
+      if (!raw || !raw.trim()) continue;
+      var tab = raw.indexOf('\t');
+      var name = '';
+      var secret = '';
+      if (tab >= 0){
+        name = raw.slice(0, tab).trim();
+        secret = raw.slice(tab + 1).trim();
+      } else {
+        secret = raw.trim();
+      }
+      if (!secret) continue;     // 只有名称没有凭证的行不发给服务端
+      out.push({ name: name, secret: secret });
+    }
+    return out;
+  }
+
+  function importZcodeRows(btn){
+    var ta = $('acctImportRows');
+    var rows = parseImportRows(ta ? ta.value : '');
+    if (!rows.length){
+      showAcctResult('bad', '没有可导入的凭证：每行一个 JWT 或 API Key，需要备注时写成「名称 + Tab + 凭证」。', true);
+      return;
+    }
+    if (btn){ btn.disabled = true; btn.textContent = '导入中…'; }
+    api(ACCOUNTS_IMPORT, { method:'POST', body:{ provider:'zcode', rows: rows } })
+      .then(function(d){
+        var added = Number((d && d.added) || 0);
+        var failed = (d && d.failed) || [];
+        // 失败行如实列出：服务端可能给字符串、行号或 {name,error}
+        var lines = failed.map(function(f){
+          if (f == null) return '';
+          if (typeof f === 'string') return f;
+          if (typeof f === 'number') return '第 ' + f + ' 行';
+          var nm = f.name || f.secret || f.line || f.index || '';
+          var why = f.error || f.message || '未知原因';
+          return (nm ? String(nm) + '：' : '') + String(why);
+        }).filter(Boolean);
+        var msg = '已导入 ' + added + ' 个账号' +
+          (failed.length ? '，' + failed.length + ' 行失败' : '') +
+          (lines.length ? '\n' + lines.join('\n') : '');
+        showAcctResult(failed.length ? 'bad' : 'ok', msg, true);
+        if (added > 0){
+          showToast('已导入 ' + added + ' 个账号');
+          // 全部成功才清空输入；有失败行时保留原文，方便改完再点导入
+          if (!failed.length && ta) ta.value = '';
+          refreshOverviewAfterChange();
+        }
+      })
+      .catch(function(e){
+        if (e && e.status === 401) return;
+        showAcctResult('bad', '导入失败：' + (e.message || '未知错误'), true);
+      })
+      .then(function(){
+        if (btn){ btn.disabled = false; btn.textContent = '导入'; }
+      });
+  }
+
+  /* ============================================================
+     页签与下拉同步
+     ============================================================ */
+  function switchTab(name){
+    var known = ['overview', 'models', 'settings', 'logs'];
+    if (known.indexOf(name) < 0) name = 'overview';
+    state.tab = name;
+    var panels = document.querySelectorAll('.tab-panel');
+    for (var i = 0; i < panels.length; i++){
+      panels[i].classList.toggle('hidden', panels[i].id !== 'panel-' + name);
+    }
+    var btns = document.querySelectorAll('#tabs .tab');
+    for (var j = 0; j < btns.length; j++){
+      btns[j].classList.toggle('on', btns[j].getAttribute('data-tab') === name);
+    }
+    if (!state.auth) return;
+    if (name === 'models') refreshModels();
+    if (name === 'settings'){
+      if (!state.loaded.settings) loadSettings();
+      if (!state.loaded.keys) loadKeys();
+    }
+    if (name === 'logs' && !state.loaded.logs) loadLogs();
+  }
+
+  // 上游清单变化后同步下拉，但保留用户已选中的值。
+  // 加签名判断：概览每 10 秒刷一次，无脑重建 select 会打断正在展开的下拉。
+  var providerSig = '';
+  function syncProviderOptions(){
+    var list = providerList();
+    var sig = list.map(function(p){ return p.id + '=' + p.label; }).join('|');
+    if (sig === providerSig) return;
+    providerSig = sig;
+    var logSel = $('logProvider');
+    if (logSel){
+      var keep = logSel.value;
+      logSel.innerHTML = list.map(function(p){
+        return '<option value="' + esc(p.id) + '">' + esc(p.label) + '</option>';
+      }).join('');
+      if (list.some(function(p){ return p.id === keep; })) logSel.value = keep;
+    }
+    renderAccountFilter();
+  }
+
+  /* ============================================================
+     时钟与自动刷新
+     ============================================================ */
+  function tickClock(){
+    setText('clock', fmtTime(new Date(), true));
+    if (state.uptime){
+      setText('uptime', fmtDuration(state.uptime.base + (Date.now() - state.uptime.at) / 1000));
+    }
+  }
+
+  function startTimers(){
+    setInterval(tickClock, 1000);
+    // 概览 10s 一轮；页面隐藏时跳过（省服务端开销，也避免后台标签页堆积请求）
+    setInterval(function(){
+      if (document.hidden || !state.auth) return;
+      loadOverview();
+    }, 10000);
+    document.addEventListener('visibilitychange', function(){
+      if (!document.hidden && state.auth) loadOverview();
+    });
+  }
+
+  /* ============================================================
+     事件绑定（脚本在 body 末尾，DOM 已就绪）
+     ============================================================ */
+  function bindEvents(){
+    on('tabs', 'click', function(e){
+      var btn = e.target.closest ? e.target.closest('.tab') : null;
+      if (!btn) return;
+      var name = btn.getAttribute('data-tab');
+      if (location.hash !== '#' + name) location.hash = name;  // 让刷新/分享保留分区
+      switchTab(name);
+    });
+    window.addEventListener('hashchange', function(){
+      switchTab(String(location.hash || '').replace('#', '') || 'overview');
+    });
+
+    on('btnRefresh', 'click', refreshCurrent);
+    on('btnLogout', 'click', doLogout);
+    on('bannerClose', 'click', function(){ clearBanner(); });
+
+    on('btnCopyUrl', 'click', function(){
+      var url = (state.overview && state.overview.gateway && state.overview.gateway.base_url) || '';
+      if (!url){ showToast('还没有拿到网关地址', 'bad'); return; }
+      copyText(url).then(function(ok){
+        showToast(ok ? '网关地址已复制' : '复制失败，请手动选中文本');
+      });
+    });
+    on('btnCopyCurl', 'click', function(){
+      copyText(state.curlText).then(function(ok){
+        showToast(ok ? 'curl 示例已复制' : '复制失败，请手动选中文本');
+      });
+    });
+
+    on('acctFilter', 'click', function(e){
+      var btn = e.target.closest ? e.target.closest('.seg-btn') : null;
+      if (!btn) return;
+      state.acctFilter = btn.getAttribute('data-filter') || 'all';
+      renderAccountFilter();
+      renderAccounts();
+    });
+    on('acctSearch', 'input', function(e){
+      state.acctQuery = e.target.value || '';
+      renderAccounts();
+    });
+    on('providersBox', 'click', function(e){
+      var btn = e.target.closest ? e.target.closest('[data-act="restart"]') : null;
+      if (btn) restartProvider(btn.getAttribute('data-id'), btn);
+    });
+
+    /* ---- 账号操作列（事件委托：表格每次重渲染都会换掉整批按钮） ---- */
+    on('acctBody', 'click', function(e){
+      var btn = e.target.closest ? e.target.closest('[data-acct-act]') : null;
+      if (!btn) return;
+      var prov = btn.getAttribute('data-prov') || '';
+      var uid = btn.getAttribute('data-uid') || '';
+      if (!prov || !uid) return;
+      if (btn.getAttribute('data-acct-act') === 'toggle'){
+        toggleAccount(prov, uid, btn.getAttribute('data-enable') === '1', btn);
+      } else {
+        deleteAccount(prov, uid, btn.getAttribute('data-name') || '', btn);
+      }
+    });
+
+    on('btnRefreshModels', 'click', refreshModels);
+
+    /* ---- 当前出口 ---- */
+    on('egressProviders', 'click', function(e){
+      var btn = e.target.closest ? e.target.closest('.seg-btn') : null;
+      if (!btn) return;
+      var pick = btn.getAttribute('data-egress') || 'auto';
+      var eg = egressData();
+      // 切上游时带上它当前在用的区域，避免「切到 wb 反而跳回默认区」
+      var realm = '';
+      if (pick === 'wb' || pick === 'qoder'){
+        realm = eg.realms[pick] || (eg.provider === pick ? eg.realm : '') || '';
+      }
+      setEgress(pick, realm);
+    });
+    on('egressRealms', 'click', function(e){
+      var btn = e.target.closest ? e.target.closest('.seg-btn') : null;
+      if (!btn) return;
+      var realm = btn.getAttribute('data-realm') || '';
+      var eg = egressData();
+      if (eg.provider !== 'wb' && eg.provider !== 'qoder') return;
+      setEgress(eg.provider, realm);
+    });
+
+    /* ---- 添加账号模态框 ---- */
+    on('btnAddAccount', 'click', openAcctModal);
+    on('acctModalClose', 'click', closeAcctModal);
+    on('acctModal', 'click', function(e){
+      if (e.target === $('acctModal')) closeAcctModal();   // 只有点遮罩本身才关，点卡片内部不关
+    });
+    document.addEventListener('keydown', function(e){
+      if (e.key !== 'Escape') return;
+      var modal = $('acctModal');
+      if (modal && !modal.classList.contains('hidden')) closeAcctModal();
+    });
+    on('acctProvPick', 'click', function(e){
+      var btn = e.target.closest ? e.target.closest('.prov-pick-btn') : null;
+      if (!btn) return;
+      state.acctProv = btn.getAttribute('data-prov') || '';
+      syncAcctProviderPane();
+      setText('acctModalTitle', acctTitle());
+    });
+    on('btnStartLogin', 'click', function(e){
+      if (state.acctProv !== 'wb' && state.acctProv !== 'qoder'){
+        showAcctResult('bad', '请先在上方选择 WorkBuddy 或 Qoder。', true);
+        return;
+      }
+      var sel = $('acctRealm');
+      var realm = (sel && sel.value === 'cn') ? 'cn' : 'intl';
+      startLogin(state.acctProv, realm, e.currentTarget);
+    });
+    on('btnZcodeOauth', 'click', function(e){ startLogin('zcode', '', e.currentTarget); });
+    on('btnOpenAuth', 'click', function(){
+      var a = $('acctAuthUrl');
+      var url = a ? safeHttpUrl(a.getAttribute('href')) : '';
+      if (!url){ showToast('还没有可打开的授权链接', 'bad'); return; }
+      window.open(url, '_blank', 'noopener,noreferrer');
+    });
+    on('btnCancelLogin', 'click', cancelLoginFlow);
+    on('btnResultAgain', 'click', function(){
+      // 回到选上游，保留刚才选中的上游，方便改区域/换入口再试一次
+      showAcctStep('pick');
+      setText('acctModalTitle', acctTitle());
+      syncAcctProviderPane();
+    });
+    on('btnResultClose', 'click', closeAcctModal);
+    on('btnImportRows', 'click', function(e){ importZcodeRows(e.currentTarget); });
+    on('acctImportRows', 'input', function(){
+      // 边打边算行数：用户最常踩的坑是「名称 + 空格 + 凭证」，这里能立刻看出来
+      var ta = $('acctImportRows');
+      var n = parseImportRows(ta ? ta.value : '').length;
+      setText('acctImportMeta', n
+        ? '将导入 ' + n + ' 行（名称与凭证之间要用 Tab 分隔）'
+        : '空行会被忽略，凭证里的空格原样保留。');
+    });
+
+    on('modelSearch', 'input', function(e){
+      state.modelQuery = e.target.value || '';
+      renderModels();
+    });
+    on('btnSaveDefault', 'click', saveDefaultProvider);
+    on('btnAddKey', 'click', addKey);
+    on('btnSavePw', 'click', savePassword);
+    on('btnSaveProviders', 'click', saveProviderSettings);
+    on('btnLoadLogs', 'click', loadLogs);
+    on('logProvider', 'change', function(){ loadLogs(); });
+    on('loginForm', 'submit', doLogin);
+    on('loginPw', 'input', function(){ showLoginError(''); });   // 重新输入时先清掉旧错误
+
+    var keyBody = on('keyBody', 'change', function(e){
+      var t = e.target;
+      if (t && t.getAttribute && t.getAttribute('data-key-toggle') != null){
+        toggleKey(t.getAttribute('data-key-toggle'), t.checked);
+      }
+    });
+    if (keyBody) keyBody.addEventListener('click', function(e){
+      var btn = e.target.closest ? e.target.closest('[data-key-del]') : null;
+      if (btn) deleteKey(btn.getAttribute('data-key-del'));
+    });
+  }
+
+  function initialTab(){
+    var name = String(location.hash || '').replace('#', '');
+    return ['overview', 'models', 'settings', 'logs'].indexOf(name) >= 0 ? name : 'overview';
+  }
+
+  function boot(){
+    bindEvents();
+    tickClock();
+    startTimers();
+    switchTab(initialTab());
+    checkAuth();
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})();
+</script>
+</body>
+</html>

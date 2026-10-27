@@ -18,6 +18,17 @@ catalog/*.json
 catalog/*.tmp
 !catalog/README.txt
 
+# 融合中枢（hub）的运行时数据：Qoder 的账号/用量、中枢面板密码、网关 Key、日志、
+# pid。目录结构见 docs/hub.md；这些是本机机密或瞬时状态，绝不上传。
+data/
+
+# 本地测试用的临时目录（沙箱里 tempfile 的重定向目标，仅开发机存在）
+.test-tmp/
+
+# Qoder 侧套件的隔离账号目录（tests/_suite_head.py 与老入口都用它）
+_acc/
+tests/_acc/
+
 # 运行时日志文件
 logs/
 
@@ -57,3 +68,6 @@ desktop.ini
 
 # Local Docker Compose override
 docker-compose.override.yml
+
+# DSH 会话/面板状态（本地工具产物，含会话记录，绝不入库）
+.dsh-ops/
